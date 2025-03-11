@@ -1,0 +1,105 @@
+;; --------------------------------------------------------------------
+;; Editor
+;;
+;; Behavior that impacts the text editing experience within a buffer:
+;; intra-file navigation, text manipulation, visualizations, etc.
+;;
+;; Advanced editor behavior, like LSPs and Treesitter, are in
+;; editor-advanced.
+
+(local augroup_module (vim.api.nvim_create_augroup :user_editor {:clear true}))
+
+;; --------------------------------------------------------------------
+;; Basics
+
+(tset vim.o :scrolloff 3)
+
+(tset vim.o :tabstop 4)
+(tset vim.o :shiftwidth 4)
+(tset vim.o :softtabstop 4)
+(tset vim.o :expandtab true)
+
+;; Shift indentation without losing selection.
+(vim.keymap.set :x :< :<gv {:noremap true})
+(vim.keymap.set :x :> :>gv {:noremap true})
+
+;; Fix Y to work like C & D.
+(vim.keymap.set :n :Y :y$ {:noremap true})
+
+;; H / L go to start / end of line instead of screen.
+; (vim.keymap.set :n :H :^ {:noremap true}) ; use _ instead
+; (vim.keymap.set :n :L :$ {:noremap true}) ; 
+
+
+;; --------------------------------------------------------------------
+;; Buffer navigation
+
+(let [m (require :mini.jump)]
+    (m.setup {
+        :delay {
+            :highlight 50
+            :idle_stop 100000000
+        }
+    })
+    (vim.cmd "highlight! link MiniJump Search"))
+
+;; --------------------------------------------------------------------
+;; Text manipulation
+
+(let [m (require :mini.comment)]
+    (m.setup {}))
+
+(let [m (require :mini.move)]
+    (m.setup {
+        :mappings {
+            :left       :<Leader>mh
+            :right      :<Leader>ml
+            :down       :<Leader>mj
+            :up         :<Leader>mk
+            :line_left  :<Leader>mh
+            :line_right :<Leader>ml
+            :line_down  :<Leader>mj
+            :line_up    :<Leader>mk
+        }
+    }))
+
+;; --------------------------------------------------------------------
+;; Appearance
+
+(let [m (require :mini.cursorword)]
+    (m.setup {:delay 50})
+    (vim.api.nvim_create_autocmd :FileType {
+        :group augroup_module
+        :callback
+        #(let [ft (. vim.bo $.buf :filetype)]
+            ;; Enable for certain file types.
+            (tset vim.b $.buf :minicursorword_disable
+                (and (not= ft :fennel) (not= ft :ruby))))}))
+
+(let [m (require :mini.indentscope)]
+    (m.setup {
+        :draw {
+            :delay 50
+            :animation (m.gen_animation.none)
+        }
+    })
+    ;; TODO: make this a generic thing to add to different plugin loads
+    (vim.api.nvim_create_autocmd :FileType {
+        :group augroup_module
+        :callback
+        #(let [ft (. vim.bo $.buf :filetype)]
+            ;; Enable for certain file types.
+            (tset vim.b $.buf :miniindentscope_disable
+                (and (not= ft :fennel) (not= ft :ruby)))
+            (when (= ft :fennel)
+                (tset vim.b $.buf :miniindentscope_config {:options {:border :top}})))
+        }))
+
+;; --------------------------------------------------------------------
+;; Completion
+
+(let [m (require :mini.completion)]
+    (m.setup {}))
+
+{}
+

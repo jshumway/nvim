@@ -72,7 +72,7 @@
     :group augroup_user
     :pattern "main.fnl"
     :callback #(do
-        (fennel.dofile (.. (string.gsub vim.env.MYVIMRC "(.*/)(.*)" "%1") "main.fnl"))
+        (fennel.dofile (.. MYVIMRC_ROOT "main.fnl"))
         (vim.notify "Config reloaded"))
 })
 
@@ -98,51 +98,11 @@
 (now-let [m (require :mini.basics)]
     (m.setup {})
     (tset vim.o :termguicolors true)
-    (tset vim.o :scrolloff 4)
     (tset vim.o :confirm true)
-
-    (tset vim.o :tabstop 4)
-    (tset vim.o :shiftwidth 4)
-    (tset vim.o :softtabstop 4)
-    (tset vim.o :expandtab true)
 
     (vim.opt.fillchars:append {:diff  "🞌"})
 
-    (tset vim.o :diffopt "filler,context:500")
-
-    ;; Buffer persistence - disable swapfiles, autosave and reload buffers regularly.
-    ;; Ideally this will make vim play nice with frequent git checkouts.
-    (tset vim.o :swapfile false)
-    (tset vim.o :autowriteall true)
-    ;; https://unix.stackexchange.com/a/383044
-    (vim.api.nvim_create_autocmd [:FocusGained :BufEnter :CursorHold :CursorHoldI] {
-        :group augroup_user
-        :pattern "*"
-        :command "if mode() !~ '\v(c|r.?|!|t)' && getcmdwintype() == '' | checktime | endif"
-    })
-    (vim.api.nvim_create_autocmd [:FileChangedShellPost] {
-        :group augroup_user
-        :pattern "*"
-        ; :command "echohl WarningMsg | echo \"File changed on disk. Buffer reloaded.\" | echohl None"
-        :callback (fn [] (vim.notify "File changed on disk: buffer reloaded."))
-    })
-
-    ;; Editing:
-    ;; Shift indentation without losing selection.
-    (map :x :< :<gv {:noremap true})
-    (map :x :> :>gv {:noremap true})
-    ;; Fix Y to work like C & D.
-    (map :n :Y :y$ {:noremap true})
-    ;; H / L go to start / end of line instead of screen.
-    ; (map :n :H :^ {:noremap true}) ; use _ instead
-    ; (map :n :L :$ {:noremap true}) ; 
-
-    ;; Buffer management:
-    ;; Double space to switch to previous buffer.
-    (map :n :<Leader><Leader> :<c-^> {:noremap true :desc "Last buffer"})
-    (map :n :<Leader>bn ":bnext<CR>" {:noremap true :desc "Next buffer"})
-    (map :n :<Leader>bp ":bprevious<CR>" {:noremap true :desc "Prev buffer"})
-    (map :n :<Leader>bd ":MiniBufremove.wipeout<CR>" {:noremap true :desc "Delete buffer"})
+    ; (tset vim.o :diffopt "filler,context:500")
 
     ;; Window management:
     ;; Space-w-w to switch to next window.
@@ -163,6 +123,8 @@
     ; (map :n "]C" "[c" {:noremap true :silent true :desc "Prev change"})
 
     ;; TODO: consider the "cursorline in active window" autogroup thing
+
+    (map :n :<leader>fE #(vim.cmd.edit (.. MYVIMRC_ROOT "main.fnl")) {:desc "Edit .nvimrc"})
     )
 
 ;; Setup notify early so any errors come through mini.notify.
@@ -188,60 +150,46 @@
 )
 
 (later-let [m (require :mini.extra)] (m.setup {}))
-(later-let [m (require :mini.comment)] (m.setup {}))
-(later-let [m (require :mini.completion)] (m.setup {}))
-(later-let [m (require :mini.bufremove)] (m.setup {}))
+
+;; ---------------------------------------------------------------------
+;; Modules
+
+(local module_clues [])
+
+(now-let [m (require :buffers)]
+    (map :n :<Leader><Leader> m.last_buffer {:noremap true :desc "Last buffer"})
+    (map :n :<Leader>bd m.wipeout {:noremap true :desc "Delete buffer"})
+    (map :n :<Leader>bn m.next_buffer {:noremap true :desc "Next buffer"})
+    (map :n :<Leader>bp m.prev_buffer {:noremap true :desc "Prev buffer"})
+
+    (table.insert module_clues [
+        {:mode :n :keys :<Leader>b :desc :+Buffers}
+        {:mode :n :keys :<Leader>bn :postkeys :<Leader>b}
+        {:mode :n :keys :<Leader>bp :postkeys :<Leader>b}
+        {:mode :n :keys :<Leader>bd :postkeys :<Leader>b}
+    ]))
+
+(now-let [m (require :editor)]
+
+    ;; MiniMove submode.
+    (table.insert module_clues [
+        {:mode :n :keys :<Leader>m :desc :+Move}
+        {:mode :x :keys :<Leader>m :desc :+Move}
+
+        {:mode :n :keys :<Leader>mh :postkeys :<Leader>m}
+        {:mode :x :keys :<Leader>mh :postkeys :<Leader>m}
+        {:mode :n :keys :<Leader>mj :postkeys :<Leader>m}
+        {:mode :x :keys :<Leader>mj :postkeys :<Leader>m}
+        {:mode :n :keys :<Leader>mk :postkeys :<Leader>m}
+    	{:mode :x :keys :<Leader>mk :postkeys :<Leader>m}
+        {:mode :n :keys :<Leader>ml :postkeys :<Leader>m}
+	{:mode :x :keys :<Leader>ml :postkeys :<Leader>m}
+    ]))
+
+;; ---------------------------------------------------------------------
+;; Unorganized.
+
 (later-let [m (require :mini.diff)] (m.setup {}))
-
-(later-let [m (require :mini.move)]
-    (m.setup {
-        :mappings {
-            :left       :<Leader>mh
-            :right      :<Leader>ml
-            :down       :<Leader>mj
-            :up         :<Leader>mk
-            :line_left  :<Leader>mh
-            :line_right :<Leader>ml
-            :line_down  :<Leader>mj
-            :line_up    :<Leader>mk
-        }
-    }))
-
-(later-let [m (require :mini.jump)]
-    (m.setup {
-        :delay {
-            :highlight 50
-            :idle_stop 100000000
-        }
-    })
-    (vim.cmd "highlight! link MiniJump Search"))
-
-(now-let [m (require :mini.cursorword)]
-    (m.setup {:delay 50})
-    (vim.api.nvim_create_autocmd :FileType 
-      {:group augroup_user
-       :callback #(let [ft (. vim.bo $.buf :filetype)]
-          ;; Enable for certain file types.
-          (tset vim.b $.buf :minicursorword_disable
-                (and (not= ft :fennel) (not= ft :ruby))))}))
-
-(now-let [m (require :mini.indentscope)]
-    (m.setup {
-        :draw {
-            :delay 50
-            :animation (m.gen_animation.none)
-        }
-    })
-    ;; TODO: make this a generic thing to add to different plugin loads
-    (vim.api.nvim_create_autocmd :FileType 
-      {:group augroup_user
-       :callback #(let [ft (. vim.bo $.buf :filetype)]
-          ;; Enable for certain file types.
-          (tset vim.b $.buf :miniindentscope_disable
-                (and (not= ft :fennel) (not= ft :ruby)))
-          (when (= ft :fennel)
-              (tset vim.b $.buf :miniindentscope_config {:options {:border :top}})))
-      }))
 
 (later-let [m (require :mini.pick)]
     (m.setup {
@@ -267,7 +215,7 @@
     })
     ;; Open MiniFiles in the same directory as the current buffer.
     (map :n :<leader>fe
-        #(_G.MiniFiles.open (string.gsub (vim.fn.expand "%:p") "(.*/)(.*)" "%1"))
+        #(_G.MiniFiles.open (string.gsub (vim.fn.expand "%:p") PATH_PATTERN "%1"))
         {:desc "File explorer"}))
 
 (later-let [m (require :mini.pick)]
@@ -395,6 +343,35 @@
 ;; Clue
 
 (later-let [m (require :mini.clue)]
+    (local clues [
+        ;; MiniClue builtins.
+        (m.gen_clues.builtin_completion)
+        (m.gen_clues.g)
+        (m.gen_clues.marks)
+        (m.gen_clues.registers)
+        (m.gen_clues.windows)
+        (m.gen_clues.z)
+
+        ;; Submenu names.
+        {:mode :n :keys :<Leader>f :desc :+Files}
+        {:mode :n :keys :<Leader>w :desc :+Windows}
+        {:mode :n :keys :<Leader>l :desc :+Lsp}
+        ; {:mode :n :keys :<Leader>t :desc :+Tabs}
+        {:mode :n :keys :<Leader>d :desc :+Diff}
+        {:mode :n :keys :<Leader>s :desc :+Search}
+        {:mode :n :keys :<Leader>c :desc :+Copy}
+
+        ;; Brackets submode.
+        {:mode :n :keys "[c" :postkeys "[" :desc "Prev change"}
+        {:mode :n :keys "]c" :postkeys "]" :desc "Next change"}
+        {:mode :n :keys "[C" :postkeys "["}
+        {:mode :n :keys "]C" :postkeys "]"}
+    ])
+
+    (each [_ mcs (ipairs module_clues)]
+        (each [_ clue (ipairs mcs)]
+            (table.insert clues clue)))
+
     (m.setup {
         :triggers [
             {:mode :n :keys :<Leader>} {:mode :x :keys :<Leader>}
@@ -414,43 +391,7 @@
             {:mode :n :keys "["}
             {:mode :n :keys "]"}
         ]
-        :clues [
-            ;; MiniClue builtins.
-            (m.gen_clues.builtin_completion)
-            (m.gen_clues.g)
-            (m.gen_clues.marks)
-            (m.gen_clues.registers)
-            (m.gen_clues.windows)
-            (m.gen_clues.z)
-
-            ;; Submenu names.
-            {:mode :n :keys :<Leader>f :desc :+Files}
-            {:mode :n :keys :<Leader>b :desc :+Buffers}
-            {:mode :n :keys :<Leader>w :desc :+Windows}
-            {:mode :n :keys :<Leader>l :desc :+Lsp}
-            {:mode :n :keys :<Leader>m :desc :+Move} {:mode :x :keys :<Leader>m :desc :+Move}
-            ; {:mode :n :keys :<Leader>t :desc :+Tabs}
-            {:mode :n :keys :<Leader>d :desc :+Diff}
-            {:mode :n :keys :<Leader>s :desc :+Search}
-            {:mode :n :keys :<Leader>c :desc :+Copy}
-
-            ;; MiniMove submode.
-			{:mode :n :keys :<Leader>mh :postkeys :<Leader>m} {:mode :x :keys :<Leader>mh :postkeys :<Leader>m}
-			{:mode :n :keys :<Leader>mj :postkeys :<Leader>m} {:mode :x :keys :<Leader>mj :postkeys :<Leader>m}
-			{:mode :n :keys :<Leader>mk :postkeys :<Leader>m} {:mode :x :keys :<Leader>mk :postkeys :<Leader>m}
-			{:mode :n :keys :<Leader>ml :postkeys :<Leader>m} {:mode :x :keys :<Leader>ml :postkeys :<Leader>m}
-
-            ;; Buffer submode.
-            {:mode :n :keys :<Leader>bn :postkeys :<Leader>b}
-            {:mode :n :keys :<Leader>bp :postkeys :<Leader>b}
-            {:mode :n :keys :<Leader>bd :postkeys :<Leader>b}
-
-            ;; Brackets submode.
-            {:mode :n :keys "[c" :postkeys "[" :desc "Prev change"}
-            {:mode :n :keys "]c" :postkeys "]" :desc "Next change"}
-            {:mode :n :keys "[C" :postkeys "["}
-            {:mode :n :keys "]C" :postkeys "]"}
-        ]
+        :clues clues
         :window {
             :delay 200
             :config {

@@ -10,7 +10,7 @@ if vim.fn.exists('g:os') == 0 then
 end
 
 -- Add nvim config directory to lua path.
-PATH_PATTERN = "(.*?/)(.*)"
+PATH_PATTERN = "(.*/)(.*)"
 if vim.g.os == "windows" then
     PATH_PATTERN = "(.*\\)(.*)"
 end

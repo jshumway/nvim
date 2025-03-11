@@ -1,15 +1,3 @@
-;; STRIPE
-;; - add generated files status to statusline
-;; - command to copy livegrep/sourcegraph link
-;; - pay test integration
-;;      show logs: --verbose --show-output
-;; - pay commands (regen dataview, regen proto, sync generated files, pay generate)
-;;      (just macros to run in a terminal? or as a background job?)
-;; - pay-server integration: find __package.rb, find associated tests
-;;      - this could be as simple as the same file name, but w/ .test.rb at the end
-;; - sorbet: copy symbol 
-;; - generate quickfix list from sorbet errors, lint warnings
-
 ;; ---------------------------------------------------------------------
 ;; Config reloading
 

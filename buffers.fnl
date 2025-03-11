@@ -26,13 +26,15 @@
 ;; Buffer management
 
 (local bufremove (require :mini.bufremove))
-
 (bufremove.setup {})
+
+(local mini_pick (require :mini.pick))
 
 {
     :wipeout bufremove.wipeout
     :last_buffer :<c-^>
     :next_buffer ":bnext<CR>"
     :prev_buffer ":bprevious<CR>"
+    :pick_buffers mini_pick.builtin.buffers
 }
 

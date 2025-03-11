@@ -1,56 +1,4 @@
-;; TODO:
-;;
-;; - Split into common config & work specific additions, move common config
-;;   into github.com/jshumway repo
-;;
-;; - live (and non-live) grep across the codebase (mini.fuzzy)
-;; - make a bunch of commands silent (they currently pollute the command bar)
-;; - clean up statusline: don't need total columns, encoding, file size
-;; - lsp motions: expand / shrink selection
-;; - view notify history
-;; - pressing esc in normal mode clears highlight (:nohl)
-;; - mini.files binding for opening a file and closing the picker
-;; - add linter / lsp error diagnostics stuff to status bar
-;; - setup brackets to iterate through stuff like diagnostics, fixlist, w/e
-;; - picker for files that have changed from the base of the branch (and since
-;;   the previous commit, and unstaged)
-;; - mini.visits labels...
-;;      - add label based on current git branch
-;;      - delete current branch name from label
-;;      - find label from current git branch
-;;      - add current git branch to all of the labels with selected git branch
-;;        (carrying labels over from previous part of a feature)
-;;      - make it so tabline only shows buffers labeled with the name of the current
-;;        branch
-;;      - and maybe an alternative to this when there isn't a git branch
-;; - it'd be great not to display the tabline in the diffviewer tab
-;; - normal mode ctrl-n/p to go to the prev/next entry in the last picker?
-;;      - might require a PR to mini.pick
-;; - need a way for (live)grep to be started with the current directory as the
-;;   limiting path, as part of the search string so it is editable
-;; - MiniPick.files key to open on right side of vsplit
-;; - MiniExtra.pickers.diagnostic
-;; - view hunk diff at current line in pop-up (w/ yanking)
-;; - lsp rename opens buffers that it modifies... either want it to write automatically
-;;   (so I can manage via git) or be able to quickly navigate between them, by like
-;;   having the modified files in a quick list
-;; 
-;; - open scratch file: in ~, named after the current branch + .md, need a markdown
-;;   viewer mode thing to make it nicer to
-;;
-;; writing mode:
-;; - markdown viewer
-;; - spell checking
-;; - run stripe doc helpers
-;;
-;; - mini.pick:
-;;      - create an action that sends all items in the current list to the quickfix
-;;        list if nothing is marked, replacing the `M-CR` binding
-;;      - create bindings to navigate the quickfix list easily
-;;      - have a way to save/navigate to old `find references` quick lists
-;;          - like a more filtered view into quickfix history that is for these reference
-;;            searches specifically
-;;
+;; STRIPE
 ;; - add generated files status to statusline
 ;; - command to copy livegrep/sourcegraph link
 ;; - pay test integration
@@ -62,10 +10,11 @@
 ;; - sorbet: copy symbol 
 ;; - generate quickfix list from sorbet errors, lint warnings
 
-;; Autogroup that all autocmds in this user config should use.
+;; ---------------------------------------------------------------------
+;; Config reloading
+
 (local augroup_user (vim.api.nvim_create_augroup :user {:clear true}))
 
-;; Set up basic automatic reloading of this file.
 ;; NOTE: this only supports reloading this specific file, not any of the
 ;; files that this one `requires`.
 (vim.api.nvim_create_autocmd :BufWritePost { 
@@ -76,7 +25,8 @@
         (vim.notify "Config reloaded"))
 })
 
-;; Bootstrap mini.deps.
+;; ---------------------------------------------------------------------
+;; Bootstrap mini_deps
 
 (let [package_path (.. (vim.fn.stdpath :data) "/site")
       mini_path (.. package_path "/pack/deps/start/mini.nvim")]
@@ -86,92 +36,65 @@
         (vim.cmd "packadd mini.nvim | helptags ALL"))
     ((. (require :mini.deps) :setup) { :path { :package package_path }}))
 
-;; Macros & globals.
+;; ---------------------------------------------------------------------
+;; Config helpers
 
-(local add _G.MiniDeps.add)
+(local mini_deps (require :mini.deps))
+(local add mini_deps.add)
 (local map vim.keymap.set)
-(macro now-let [bindings ...] `(_G.MiniDeps.now (fn [] (let ,bindings ,...))))
-(macro later-let [bindings ...] `(_G.MiniDeps.later (fn [] (let ,bindings ,...))))
+(macro now-let [bindings ...] `(mini_deps.now (fn [] (let ,bindings ,...))))
+(macro later-let [bindings ...] `(mini_deps.later (fn [] (let ,bindings ,...))))
 
-;; Basic config.
+;; ---------------------------------------------------------------------
+;; Basic config
+
+;; TODO:
+;; - make a bunch of commands silent (they currently pollute the command bar)
+;; - hotkey to view notify history
+;; - pressing esc in normal mode clears highlight (:nohl) (or maybe not tbh)
 
 (now-let [m (require :mini.basics)]
-    (m.setup {})
+    (m.setup)
     (tset vim.o :termguicolors true)
     (tset vim.o :confirm true)
+    (map :n :<leader>fE #(vim.cmd.edit (.. MYVIMRC_ROOT "main.fnl")) {:desc "Edit .nvimrc"}))
 
-    (vim.opt.fillchars:append {:diff  "🞌"})
+(when (= vim.g.os :windows)
+    (now-let [m (require :os-windows)]
+        nil))
 
-    ; (tset vim.o :diffopt "filler,context:500")
-
-    ;; Window management:
-    ;; Space-w-w to switch to next window.
-    (map :n :<Leader>ww :<C-w>w {:noremap true :desc "Last window"})
-    (map :n :<Leader>wv ":vsplit<CR>" {:noremap true :desc "Vertical split"})
-    (map :n :<Leader>wc :<C-w>c {:noremap true :desc "Close window"})
-
-    ;; Copying
-
-    (map :n :cp ":let @\" = expand(\"%\")<CR>" {:noremap true :desc "Copy path"})
-
-
-    ;; Stick with gt & gT instead.
-    ; (map :n :<Leader>tt ":tabnext<CR>" {:noremap true :silent true :desc "Next tab"})
-
-    ; ;; TODO: these should be buffer local to the diff buffers
-    ; (map :n "[C" "]c" {:noremap true :silent true :desc "Next change"})
-    ; (map :n "]C" "[c" {:noremap true :silent true :desc "Prev change"})
-
-    ;; TODO: consider the "cursorline in active window" autogroup thing
-
-    (map :n :<leader>fE #(vim.cmd.edit (.. MYVIMRC_ROOT "main.fnl")) {:desc "Edit .nvimrc"})
-    )
+;; ---------------------------------------------------------------------
+;; Global modules
+;;
+;; These modules provide basic functionality and can be required by
+;; all other modules without setup.
 
 ;; Setup notify early so any errors come through mini.notify.
 (now-let [m (require :mini.notify)]
-    (m.setup {})
+    (m.setup)
     (tset vim :notify (m.make_notify)))
 
 (now-let [m (require :mini.icons)]
-    (m.setup {})
+    (m.setup)
     (m.mock_nvim_web_devicons)
     (m.tweak_lsp_kind))
 
-; (now-let [m (require :mini.tabline)] (m.setup {}))
-(now-let [m (require :mini.statusline)]
-    (m.setup {})
-    ; (vim.api.nvim_create_autocmd :BufFilePost {
-    ;     :group augroup_user
-    ;     :pattern "*"
-    ;     :callback (fn []
-    ;         (when (= vim.bo.ft :terminal)
-    ;             (tset vim.b :ministatusline_disable true)))
-    ; })
-)
+(now-let [m (require :mini.extra)]
+    (m.setup))
 
-(later-let [m (require :mini.extra)] (m.setup {}))
+(now-let [m (require :mini.pick)]
+    (m.setup))
+
+;; TODO: clean up the status line; don't need total columns, encoding, file size
+(now-let [m (require :mini.statusline)]
+    (m.setup))
 
 ;; ---------------------------------------------------------------------
 ;; Modules
 
 (local module_clues [])
 
-(now-let [m (require :buffers)]
-    (map :n :<Leader><Leader> m.last_buffer {:noremap true :desc "Last buffer"})
-    (map :n :<Leader>bd m.wipeout {:noremap true :desc "Delete buffer"})
-    (map :n :<Leader>bn m.next_buffer {:noremap true :desc "Next buffer"})
-    (map :n :<Leader>bp m.prev_buffer {:noremap true :desc "Prev buffer"})
-
-    (table.insert module_clues [
-        {:mode :n :keys :<Leader>b :desc :+Buffers}
-        {:mode :n :keys :<Leader>bn :postkeys :<Leader>b}
-        {:mode :n :keys :<Leader>bp :postkeys :<Leader>b}
-        {:mode :n :keys :<Leader>bd :postkeys :<Leader>b}
-    ]))
-
 (now-let [m (require :editor)]
-
-    ;; MiniMove submode.
     (table.insert module_clues [
         {:mode :n :keys :<Leader>m :desc :+Move}
         {:mode :x :keys :<Leader>m :desc :+Move}
@@ -183,166 +106,102 @@
         {:mode :n :keys :<Leader>mk :postkeys :<Leader>m}
     	{:mode :x :keys :<Leader>mk :postkeys :<Leader>m}
         {:mode :n :keys :<Leader>ml :postkeys :<Leader>m}
-	{:mode :x :keys :<Leader>ml :postkeys :<Leader>m}
+	    {:mode :x :keys :<Leader>ml :postkeys :<Leader>m}
     ]))
 
+(now-let [m (require :buffers)]
+    (map :n :<Leader><Leader> m.last_buffer {:noremap true :desc "Last buffer"})
+    (map :n :<Leader>bb m.pick_buffers {:noremap true :desc "Pick buffer"})
+    (map :n :<Leader>bd m.wipeout {:noremap true :desc "Delete buffer"})
+    (map :n :<Leader>bn m.next_buffer {:noremap true :desc "Next buffer"})
+    (map :n :<Leader>bp m.prev_buffer {:noremap true :desc "Prev buffer"})
+
+    (table.insert module_clues [
+        {:mode :n :keys :<Leader>b :desc :+Buffers}
+        {:mode :n :keys :<Leader>bn :postkeys :<Leader>b}
+        {:mode :n :keys :<Leader>bp :postkeys :<Leader>b}
+        {:mode :n :keys :<Leader>bd :postkeys :<Leader>b}
+    ]))
+
+(now-let [m (require :windows)]
+    (map :n :<Leader>ww m.last_window {:noremap true :desc "Last window"})
+    (map :n :<Leader>wc m.close_window {:noremap true :desc "Close window"})
+    (map :n :<Leader>wv m.vertical_split {:noremap true :desc "Vertical split"})
+    (map :n :<Leader>wR m.rebalance_splits {:noremap true :desc "Rebalance splits"})
+
+    (table.insert module_clues [
+        {:mode :n :keys :<Leader>w :desc :+Windows}
+    ]))
+
+(now-let [m (require :theme)] nil)
+
+(later-let [m (require :navigation)]
+    (map :n :<Leader>fr m.pick_recent {:noremap true :desc "Recent files"})
+    (map :n :<leader>fe m.explore_files_at_current_path {:desc "File explorer"})
+    (map :n :<leader>ff m.pick_files {:desc "Find files"})
+    (map :n :<leader>r m.resume_last_picker {:desc "Last picker"})
+    (map :n :<leader>si m.pick_grep_live {:desc "Interactive grep"})
+    (map :n :<leader>sg m.pick_grep {:desc "Grep"})
+    (map :n :<leader>sh m.pick_help {:desc "Help"})
+
+    (table.insert module_clues [
+        {:mode :n :keys :<Leader>f :desc :+Files}
+        {:mode :n :keys :<Leader>s :desc :+Search}
+    ]))
+
+(later-let [m (require :editor-advanced)]
+    (m.on_lsp_attach (fn [ctx]
+        (map :n :gd m.definition {:buffer ctx.buf :desc "Goto definition"})
+        (map :n :gD m.type_definition {:buffer ctx.buf :desc "Goto type"})
+        (map :n :grr m.references {:buffer ctx.buf :desc "Goto references"})
+        (map :n :gi m.implementation {:buffer ctx.buf :desc "Goto implementation"})
+        (map :n :grd m.declaration {:buffer ctx.buf :desc "Goto declaration"})
+
+        (map :i :<C-s> m.signature_help {:buffer ctx.buf :desc "Signature help"})
+        (map :n :<Leader>ld m.hover {:buffer ctx.buf :desc "Hover documentation"})
+
+        (map :n :<Leader>la m.code_action {:buffer ctx.buf :desc "Code action"})
+        (map :n :<Leader>lr m.rename {:buffer ctx.buf :desc "Rename symbol"})))
+
+    (table.insert module_clues [
+        {:mode :n :keys :<Leader>l :desc :+Lsp}
+    ]))
+
+(later-let [m (require :terminal)]
+    (map :n :<C-t> m.normal_toggle_terminal {:noremap true :silent true})
+    (map :i :<C-t> m.insert_toggle_terminal {:noremap true :silent true})
+    (m.on_term_enter (fn [ctx]
+        (map :t :<C-t> m.normal_toggle_terminal {:buffer ctx.buf :noremap true :silent true})
+    )))
+
+(later-let [m (require :diff)]
+    nil
+    ;; {:mode :n :keys :<Leader>d :desc :+Diff}
+    )
+
 ;; ---------------------------------------------------------------------
-;; Unorganized.
-
-(later-let [m (require :mini.diff)] (m.setup {}))
-
-(later-let [m (require :mini.pick)]
-    (m.setup {
-        :mappings {
-            ; :choose_marked :<C-CR>
-        }
-    })
-    (map :n :<Leader>bb ":Pick buffers<CR>" {:noremap true :desc "Pick buffer"})
-    ;; TODO: custom action to move all results to the quickfix list
-    ;;     basically <mark all> <choose marked>
-    )
-
-(later-let [m (require :mini.visits)]
-    (m.setup {})
-    (map :n :<Leader>fr _G.MiniExtra.pickers.visit_paths {:noremap true :desc "Recent files"}))
-
-(later-let [m (require :mini.files)]
-    (m.setup {
-        :windows {
-            :preview true
-            :width_preview 120
-        }
-    })
-    ;; Open MiniFiles in the same directory as the current buffer.
-    (map :n :<leader>fe
-        #(_G.MiniFiles.open (string.gsub (vim.fn.expand "%:p") PATH_PATTERN "%1"))
-        {:desc "File explorer"}))
-
-(later-let [m (require :mini.pick)]
-    (m.setup)
-    (map :n :<leader>ff _G.MiniPick.builtin.files {:desc "Find files"})
-    (map :n :<leader>r _G.MiniPick.builtin.resume {:desc "Last picker"})
-
-    (map :n :<leader>si _G.MiniPick.builtin.grep_live {:desc "Interactive grep"})
-    (map :n :<leader>sg _G.MiniPick.builtin.grep {:desc "Grep"})
-
-    (map :n :<leader>sh _G.MiniPick.builtin.help {:desc "Help"})
-    )
-
-(later-let [_ (add {:source :nvim-treesitter/nvim-treesitter
-             :checkout :master :monitor :main
-    	     :hooks {:post_checkout #(vim.cmd :TSUpdate)}})
-            m (require :nvim-treesitter.configs)]
-        (m.setup {
-            :ensure_installed [:lua :vimdoc :ruby :fennel]
-            :highlight {:enable true}
-        }))
-
-(later-let [_ (add {:source :neovim/nvim-lspconfig})
-            m (require :lspconfig)]
-
-    (vim.api.nvim_create_autocmd :LspAttach {
-        :pattern "*"
-        :group augroup_user
-        :callback #(do
-            ;; TODO: using this picker for definitions is really annoying
-            (map :n :gd vim.lsp.buf.definition {:buffer $.buf :desc "Goto definition"})
-            ; (map :n :gd #(_G.MiniExtra.pickers.lsp {:scope :definition}) {:buffer $.buf :desc "Goto definition"})
-            (map :n :gD #(_G.MiniExtra.pickers.lsp {:scope :type_definition}) {:buffer $.buf :desc "Goto type"})
-            (map :n :grr #(_G.MiniExtra.pickers.lsp {:scope :references}) {:buffer $.buf :desc "Goto references"})
-            (map :i :<C-s> vim.lsp.buf.signature_help {:buffer $.buf :desc "Signature help"})
-
-            (map :n :gi #(_G.MiniExtra.pickers.lsp {:scope :implementation}) {:buffer $.buf :desc "Goto implementation"})
-            (map :n :grd #(_G.MiniExtra.pickers.lsp {:scope :declaration}) {:buffer $.buf :desc "Goto declaration"})
-
-            (map :n :<Leader>lr vim.lsp.buf.rename {:buffer $.buf :desc "Rename symbol"})
-            (map :n :<Leader>la vim.lsp.buf.code_action {:buffer $.buf :desc "Code action"})
-            (map :n :<Leader>ld vim.lsp.buf.hover {:buffer $.buf :desc "Hover documentation"})
-    )})
-
-    ; (each [_ lsp (ipairs [:gopls])]
-    ;     ((. m lsp :setup) {}))
-    )
-
-(later-let [_ (add {:source :akinsho/toggleterm.nvim})
-            m (require :toggleterm)]
-    (m.setup)
-
-    (vim.api.nvim_create_autocmd :TermEnter {
-        :pattern "term://*toggleterm#*"
-        :group augroup_user
-        :callback #(do
-            (map :t :<C-t> "<Cmd>exe v:count1 . \"ToggleTerm\"<CR>" {:buffer $.buf :noremap true :silent true})
-            ; (map :t :<Esc> :<C-\><C-N> {:noremap true :silent true})
-        )})
-    (map :n :<C-t> "<Cmd>exe v:count1 . \"ToggleTerm\"<CR>" {:noremap true :silent true})
-    (map :i :<C-t> "<Esc><Cmd>exe v:count1 . \"ToggleTerm\"<CR>" {:noremap true :silent true})
-
-    ;; TODO: enable pasting from unnamed register via C-R
-    ; :tnoremap <expr> <C-R> '<C-\><C-N>"'.nr2char(getchar()).'pi'
-    )
-
-; (later-let [_ (add {:source :stevearc/conform.nvim
-;                     :depends ["git@git.corp.stripe.com:stevearc/nvim-stripe-configs"]})
-;             m (require :conform)]
-;     (m.setup {
-;         :formatters_by_ft {
-;             :javascript ["prettierd"]
-;             :typescript ["prettierd"]
-;             :javascriptreact [ "prettierd" ]
-;             :typescriptreact [ "prettierd" ]
-;             :html [ "prettierd" ]
-;             :json [ "prettierd" ]
-;             :jsonc [ "prettierd" ]
-;             :graphql [ "prettierd" ]
-;             :go [:goimports :gofmt]
-;             :lua [ "stylua" ]
-;             :python [ "zoolander_format_python" ]
-;             :sql [ "zoolander_format_sql" ]
-;             :bzl [ "zoolander_format_build" ]
-;             :java [ "zoolander_format_java" ]
-;             :scala [ "zoolander_format_scala" ]
-;             :terraform [ "sc_terraform" ]
-;         }
-;         :format_after_save {:lsp_format :fallback}
-;     }))
-
-;; TODO: not sure if this git thing is really working
-(later-let [_ (add :sindrets/diffview.nvim)
-            m (require :diffview)]
-    (m.setup {
-        :enhanced_diff_hl true
-        :file_panel {
-            :listing_style :list
-        }
-        :hooks {
-            :diff_buf_win_enter (fn [bufnr winid ctx]
-                ;; Turn off cursor line for diffview windows because of bg conflict
-                ;; https://github.com/neovim/neovim/issues/9800.
-                (tset vim.wo winid :culopt :number)
-            )
-        }
-    })
-
-    ;; TODO: this plugin assigns <Leader>b to close the file browser, which
-    ;; conflicts with my buffer submode.
-    ;;
-    ;; In fact, it messes with a number of <Leader>_ bindings.
-
-    ;; TODO: it'd be cool to just run the `!git remote set-head...` automatically
-    ;; if we hit the certain error... or just assume/hardcode master.
-    
-    (map :n :<Leader>dH ":!git remote set-head -a origin<CR>" {:noremap true :desc "Set origin/HEAD"})
-    (map :n :<Leader>dM ":DiffviewOpen origin/HEAD...HEAD --imply-local<CR>" {:noremap true :desc "Diff origin/HEAD"})
-    (map :n :<Leader>dw ":DiffviewOpen HEAD --imply-local<CR>" {:noremap true :desc "Working changes"})
-    (map :n :<Leader>dc ":DiffviewFileHistory --range=origin/HEAD...HEAD --right-only --no-merges"
-         {:noremap true :desc "Diff commits from HEAD"})
-    (map :n :<Leader>dC ":DiffviewClose<CR>" {:noremap true :desc "Close"})
-    )
-
-;; Clue
+;; Clues
 
 (later-let [m (require :mini.clue)]
+    (local triggers [
+        {:mode :n :keys :<Leader>} {:mode :x :keys :<Leader>}
+        ;; Built-in completion.
+        {:mode :i :keys :<C-x>}
+        ;; `g` keys.
+        {:mode :n :keys :g} {:mode :x :keys :g}
+        ;; Marks.
+        {:mode :n :keys "'"} {:mode :n :keys "`"} {:mode :x :keys "'"} {:mode :x :keys "`"}
+        ;; Registers.
+        {:mode :n :keys "\""} {:mode :x :keys "\""} {:mode :i :keys :<C-r>} {:mode :c :keys :<C-r>}
+        ;; Window commands.
+        {:mode :n :keys :<C-w>}
+        ;; `z` key
+        {:mode :n :keys :z} {:mode :x :keys :z}
+
+        {:mode :n :keys "["}
+        {:mode :n :keys "]"}
+    ])
+
     (local clues [
         ;; MiniClue builtins.
         (m.gen_clues.builtin_completion)
@@ -352,15 +211,6 @@
         (m.gen_clues.windows)
         (m.gen_clues.z)
 
-        ;; Submenu names.
-        {:mode :n :keys :<Leader>f :desc :+Files}
-        {:mode :n :keys :<Leader>w :desc :+Windows}
-        {:mode :n :keys :<Leader>l :desc :+Lsp}
-        ; {:mode :n :keys :<Leader>t :desc :+Tabs}
-        {:mode :n :keys :<Leader>d :desc :+Diff}
-        {:mode :n :keys :<Leader>s :desc :+Search}
-        {:mode :n :keys :<Leader>c :desc :+Copy}
-
         ;; Brackets submode.
         {:mode :n :keys "[c" :postkeys "[" :desc "Prev change"}
         {:mode :n :keys "]c" :postkeys "]" :desc "Next change"}
@@ -368,29 +218,13 @@
         {:mode :n :keys "]C" :postkeys "]"}
     ])
 
+    ;; Add module clues.
     (each [_ mcs (ipairs module_clues)]
         (each [_ clue (ipairs mcs)]
             (table.insert clues clue)))
 
     (m.setup {
-        :triggers [
-            {:mode :n :keys :<Leader>} {:mode :x :keys :<Leader>}
-            ;; Built-in completion.
-            {:mode :i :keys :<C-x>}
-            ;; `g` keys.
-            {:mode :n :keys :g} {:mode :x :keys :g}
-            ;; Marks.
-            {:mode :n :keys "'"} {:mode :n :keys "`"} {:mode :x :keys "'"} {:mode :x :keys "`"}
-            ;; Registers.
-            {:mode :n :keys "\""} {:mode :x :keys "\""} {:mode :i :keys :<C-r>} {:mode :c :keys :<C-r>}
-            ;; Window commands.
-            {:mode :n :keys :<C-w>}
-            ;; `z` key
-            {:mode :n :keys :z} {:mode :x :keys :z}
-
-            {:mode :n :keys "["}
-            {:mode :n :keys "]"}
-        ]
+        :triggers triggers
         :clues clues
         :window {
             :delay 200
@@ -398,55 +232,5 @@
                 :width 36
             }
         }
-    })
-)
-
-;; Aesthetic stuff
-
-(now-let [_ (add :aktersnurra/no-clown-fiesta.nvim)
-          m (require :no-clown-fiesta)
-          ;; https://github.com/aktersnurra/no-clown-fiesta.nvim/blob/master/lua/no-clown-fiesta/palette.lua
-          palette (require :no-clown-fiesta.palette)]
-    (m.setup {
-        :type {
-            :bold false
-        }
-    })
-
-    (vim.cmd "colorscheme no-clown-fiesta")
-
-    ; code
-    (vim.api.nvim_set_hl 0 "@string.special.symbol" {:link "@string"})
-    (vim.api.nvim_set_hl 0 "@string.special.symbol" {:link "@string"})
-    (vim.api.nvim_set_hl 0 "@type" {:link :Normal})
-
-    ; (mini.)statusline
-    (vim.cmd "highlight! link StatuslineNC Normal")
-    (vim.cmd "highlight! link Statusline Comment")
-    (vim.cmd "highlight! link MiniStatuslineInactive Comment")
-
-    ; vimdiff
-    (vim.api.nvim_set_hl 0 :DiffAdd {:bg "#1b2513"})
-    (vim.api.nvim_set_hl 0 :DiffChange {:bg "#1f212e"}) 
-    (vim.api.nvim_set_hl 0 :DiffText {:bg "#2f3450"}) 
-
-    ; mini.pick
-    (vim.api.nvim_set_hl 0 :MiniPickMatchCurrent {:fg palette.cursor_fg :bg palette.cursor_bg})
-    (vim.api.nvim_set_hl 0 :MiniPickMatchMarked {:fg palette.gray_blue})
-    (vim.api.nvim_set_hl 0 :MiniPickPreviewLine {:fg palette.cursor_fg :bg palette.cursor_bg})
-
-    ; diagnostic signs
-    (vim.api.nvim_set_hl 0 :DiagnosticSignError {:fg palette.error :bg palette.bg})
-    (vim.api.nvim_set_hl 0 :DiagnosticSignHint {:bg palette.bg})
-    (vim.api.nvim_set_hl 0 :DiagnosticSignInfo {:bg palette.bg})
-    (vim.api.nvim_set_hl 0 :DiagnosticSignWarn {:bg palette.bg})
-    (vim.api.nvim_set_hl 0 :DiagnosticSignOk {:bg palette.bg})
-    )
-
-
-
-;; Language specific config
-
-;;; Fennel
-; (autocmd :FileType {:pattern ["Fennel"] :command "setlocal ts=4 sw=4"})
+    }))
 

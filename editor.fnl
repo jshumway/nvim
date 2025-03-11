@@ -7,6 +7,17 @@
 ;; Advanced editor behavior, like LSPs and Treesitter, are in
 ;; editor-advanced.
 
+;; TODO:
+;; - consider highlighting the cursor line in the active window
+;;   (using an autogroup)
+;; - various copy commands to extract info from/about the buffer
+;;      - filename
+;;      - relative path
+;;      - file contents (over ssh too)
+
+; (map :n :cp ":let @\" = expand(\"%\")<CR>" {:noremap true :desc "Copy path"})
+; {:mode :n :keys :<Leader>c :desc :+Copy}
+
 (local augroup_module (vim.api.nvim_create_augroup :user_editor {:clear true}))
 
 ;; --------------------------------------------------------------------
@@ -29,7 +40,6 @@
 ;; H / L go to start / end of line instead of screen.
 ; (vim.keymap.set :n :H :^ {:noremap true}) ; use _ instead
 ; (vim.keymap.set :n :L :$ {:noremap true}) ; 
-
 
 ;; --------------------------------------------------------------------
 ;; Buffer navigation

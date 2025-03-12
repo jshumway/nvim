@@ -167,6 +167,9 @@
     ;; {:mode :n :keys :<Leader>d :desc :+Diff}
     )
 
+(when (vim.fn.filereadable :stripe.fnl)
+    (require :stripe))
+
 ;; ---------------------------------------------------------------------
 ;; Clues
 

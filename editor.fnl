@@ -14,6 +14,7 @@
 ;;      - filename
 ;;      - relative path
 ;;      - file contents (over ssh too)
+;; - spell checking
 
 ; (map :n :cp ":let @\" = expand(\"%\")<CR>" {:noremap true :desc "Copy path"})
 ; {:mode :n :keys :<Leader>c :desc :+Copy}

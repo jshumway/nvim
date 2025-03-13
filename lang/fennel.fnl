@@ -4,7 +4,7 @@
 
 (vim.api.nvim_create_autocmd :FileType {
     :group augroup_module
-    :pattern [:fennel]
+    :pattern [:fennel :lua]
     :callback (fn []
         (vim.cmd "setlocal includeexpr=substitute(v:fname,'\\\\.','/','g')")
         (vim.opt_local.suffixesadd:prepend :.fnl)
@@ -16,6 +16,6 @@
             (.. mini-deps.config.path.package :/pack/deps/opt/*/lua/**))
 
         (vim.opt_local.path:prepend
-            (.. mini-deps.config.path.package :/pack/deps/start/*/lua/**))
+            (.. mini-deps.config.path.package :/pack/deps/start/*/lua/**)))
     })
 

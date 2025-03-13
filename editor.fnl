@@ -112,5 +112,24 @@
 (let [m (require :mini.completion)]
     (m.setup {}))
 
+;; --------------------------------------------------------------------
+;; Folding
+
+;; https://www.jackfranklin.co.uk/blog/code-folding-in-vim-neovim/
+(tset vim.opt :foldmethod :expr)
+(tset vim.opt :foldexpr "v:lua.vim.treesitter.foldexpr()")
+(tset vim.opt :foldtext "")
+(tset vim.opt :foldenable true)
+(tset vim.opt :foldlevel 99)
+; (tset vim.opt :foldlevelstart 99)
+; (tset vim.opt :foldnestmax 6)
+(vim.opt.fillchars:append {:fold  " "})
+
+; zR open all folds
+; zM close all open folds
+; za toggles the fold at the cursor
+; zk prev fold
+; zj next fold
+
 {}
 

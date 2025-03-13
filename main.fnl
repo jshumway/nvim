@@ -173,7 +173,8 @@
 ;; ---------------------------------------------------------------------
 ;; Language modules
 
-(later-let [m (require :ruby)] nil)
+(let [cb #(pcall require (.. :lang. (vim.fn.expand "<amatch>")))]
+  (vim.api.nvim_create_autocmd :FileType {:callback cb :group augroup_user}))
 
 ;; ---------------------------------------------------------------------
 ;; Clues

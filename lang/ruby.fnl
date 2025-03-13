@@ -18,5 +18,3 @@
 (when (ts_parsers.has_parser :ruby)
     ((. (require :vim.treesitter.query) :set) :ruby :folds folds_query))
 
-{}
-

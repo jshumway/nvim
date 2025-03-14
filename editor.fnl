@@ -60,19 +60,19 @@
 (let [m (require :mini.comment)]
     (m.setup {}))
 
-(let [m (require :mini.move)]
-    (m.setup {
-        :mappings {
-            :left       :<Leader>mh
-            :right      :<Leader>ml
-            :down       :<Leader>mj
-            :up         :<Leader>mk
-            :line_left  :<Leader>mh
-            :line_right :<Leader>ml
-            :line_down  :<Leader>mj
-            :line_up    :<Leader>mk
-        }
-    }))
+; (let [m (require :mini.move)]
+;     (m.setup {
+;         :mappings {
+;             :left       :<Leader>mh
+;             :right      :<Leader>ml
+;             :down       :<Leader>mj
+;             :up         :<Leader>mk
+;             :line_left  :<Leader>mh
+;             :line_right :<Leader>ml
+;             :line_down  :<Leader>mj
+;             :line_up    :<Leader>mk
+;         }
+;     }))
 
 ;; --------------------------------------------------------------------
 ;; Appearance

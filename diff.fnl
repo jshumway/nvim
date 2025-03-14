@@ -85,6 +85,9 @@
 ;; and they'll automatically have the diff calculated from the right point.
 ;;
 ;; This can probably replace my desired usage of Diffview entierly.
+;;
+;; Note: mini_extra.pickers.git_hunks actually uses `git diff`, so it doesn't have
+;; the shortcomings that mini_diff does.
 
 {
     ;; TODO: have this command reset the reference text to be the index or whatever...

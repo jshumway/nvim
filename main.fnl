@@ -83,19 +83,20 @@
 (local module_clues [])
 
 (now-let [m (require :editor)]
-    (table.insert module_clues [
-        {:mode :n :keys :<Leader>m :desc :+Move}
-        {:mode :x :keys :<Leader>m :desc :+Move}
-
-        {:mode :n :keys :<Leader>mh :postkeys :<Leader>m}
-        {:mode :x :keys :<Leader>mh :postkeys :<Leader>m}
-        {:mode :n :keys :<Leader>mj :postkeys :<Leader>m}
-        {:mode :x :keys :<Leader>mj :postkeys :<Leader>m}
-        {:mode :n :keys :<Leader>mk :postkeys :<Leader>m}
-    	{:mode :x :keys :<Leader>mk :postkeys :<Leader>m}
-        {:mode :n :keys :<Leader>ml :postkeys :<Leader>m}
-	    {:mode :x :keys :<Leader>ml :postkeys :<Leader>m}
-    ]))
+    ; (table.insert module_clues [
+    ;     {:mode :n :keys :<Leader>m :desc :+Move}
+    ;     {:mode :x :keys :<Leader>m :desc :+Move}
+    ;
+    ;     {:mode :n :keys :<Leader>mh :postkeys :<Leader>m}
+    ;     {:mode :x :keys :<Leader>mh :postkeys :<Leader>m}
+    ;     {:mode :n :keys :<Leader>mj :postkeys :<Leader>m}
+    ;     {:mode :x :keys :<Leader>mj :postkeys :<Leader>m}
+    ;     {:mode :n :keys :<Leader>mk :postkeys :<Leader>m}
+    ;     {:mode :x :keys :<Leader>mk :postkeys :<Leader>m}
+    ;     {:mode :n :keys :<Leader>ml :postkeys :<Leader>m}
+    ;     {:mode :x :keys :<Leader>ml :postkeys :<Leader>m}
+    ; ])
+    nil)
 
 (now-let [m (require :buffers)]
     (map :n :<Leader><Leader> m.last_buffer {:noremap true :desc "Last buffer"})
@@ -170,8 +171,10 @@
         {:mode :n :keys :<Leader>d :desc :+Diff}
     ]))
 
+(later-let [m (require :git)] nil)
+
 (when (vim.fn.filereadable :stripe.fnl)
-    (require :stripe))
+    (later-let [m (require :stripe)] nil))
 
 ;; ---------------------------------------------------------------------
 ;; Language modules

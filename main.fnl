@@ -83,20 +83,16 @@
 (local module_clues [])
 
 (now-let [m (require :editor)]
-    ; (table.insert module_clues [
-    ;     {:mode :n :keys :<Leader>m :desc :+Move}
-    ;     {:mode :x :keys :<Leader>m :desc :+Move}
-    ;
-    ;     {:mode :n :keys :<Leader>mh :postkeys :<Leader>m}
-    ;     {:mode :x :keys :<Leader>mh :postkeys :<Leader>m}
-    ;     {:mode :n :keys :<Leader>mj :postkeys :<Leader>m}
-    ;     {:mode :x :keys :<Leader>mj :postkeys :<Leader>m}
-    ;     {:mode :n :keys :<Leader>mk :postkeys :<Leader>m}
-    ;     {:mode :x :keys :<Leader>mk :postkeys :<Leader>m}
-    ;     {:mode :n :keys :<Leader>ml :postkeys :<Leader>m}
-    ;     {:mode :x :keys :<Leader>ml :postkeys :<Leader>m}
-    ; ])
-    nil)
+    (map :v :<Leader>y "\"+y" {:noremap true :desc "Copy"})
+    (map :n :<Leader>Y "\"+yg_" {:noremap true :desc "Copy"})
+    (map :n :<Leader>y "\"+y" {:noremap true :desc "Copy"})
+    (map :n :<Leader>yy "\"+yy" {:noremap true :desc "Copy"})
+
+    (map :n :<Leader>p "\"+p" {:noremap true :desc "Paste"})
+    (map :n :<Leader>P "\"+P" {:noremap true :desc "Paste"})
+    (map :v :<Leader>p "\"+p" {:noremap true :desc "Paste"})
+    (map :v :<Leader>P "\"+P" {:noremap true :desc "Paste"})
+    )
 
 (now-let [m (require :buffers)]
     (map :n :<Leader><Leader> m.last_buffer {:noremap true :desc "Last buffer"})

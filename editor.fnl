@@ -136,11 +136,16 @@
 ; (tset vim.opt :foldnestmax 6)
 (vim.opt.fillchars:append {:fold  " "})
 
-; zR open all folds
-; zM close all open folds
-; za toggles the fold at the cursor
-; zk prev fold
-; zj next fold
+;; --------------------------------------------------------------------
+;; Copy
+
+(tset vim.g :clipboard {
+    :name "OSC 52"
+    :copy {
+        :+ (. (require :vim.ui.clipboard.osc52) :copy)
+        :* (. (require :vim.ui.clipboard.osc52) :copy)
+    }
+})
 
 {}
 

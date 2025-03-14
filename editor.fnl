@@ -106,6 +106,17 @@
                 (tset vim.b $.buf :miniindentscope_config {:options {:border :top}})))
         }))
 
+(let [m (require :mini.hipatterns)]
+    (m.setup {
+        :highlighters {
+            :fixme {:pattern :FIXME :group :MiniHipatternsFixme }
+            :hack {:pattern :HACK :group :MiniHipatternsHack }
+            :todo {:pattern :TODO :group :MiniHipatternsTodo }
+            :note {:pattern :NOTE :group :MiniHipatternsNote }
+            :hex_color (m.gen_highlighter.hex_color)
+        }
+    }))
+
 ;; --------------------------------------------------------------------
 ;; Completion
 

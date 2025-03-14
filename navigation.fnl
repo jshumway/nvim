@@ -44,6 +44,10 @@
     }
 })
 
+;; NOTE: Required for mini_extra.pickers.visit_paths to function.
+(local mini_visits (require :mini.visits))
+(mini_visits.setup)
+
 (local mini_fuzzy (require :mini.fuzzy))
 (mini_fuzzy.setup)
 

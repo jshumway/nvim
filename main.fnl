@@ -163,9 +163,12 @@
     )))
 
 (later-let [m (require :diff)]
-    nil
-    ;; {:mode :n :keys :<Leader>d :desc :+Diff}
-    )
+    (map :n :<Leader>dS m.toggle_inline_changes {:noremap true :silent true :desc "Show diff inline"})
+    (map :n :<Leader>dt m.test {:noremap true :silent true :desc "test"})
+
+    (table.insert module_clues [
+        {:mode :n :keys :<Leader>d :desc :+Diff}
+    ]))
 
 (when (vim.fn.filereadable :stripe.fnl)
     (require :stripe))

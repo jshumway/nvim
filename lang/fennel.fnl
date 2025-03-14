@@ -13,9 +13,9 @@
         (vim.opt_local.suffixesadd:prepend :.init.lua)
 
         (vim.opt_local.path:prepend
-            (.. mini-deps.config.path.package :/pack/deps/opt/*/lua/**))
+            (.. mini-deps.config.path.package :/pack/deps/opt/*/lua))
 
         (vim.opt_local.path:prepend
-            (.. mini-deps.config.path.package :/pack/deps/start/*/lua/**)))
+            (.. mini-deps.config.path.package :/pack/deps/start/*/lua)))
     })
 

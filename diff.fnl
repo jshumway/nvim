@@ -49,8 +49,48 @@
 ;     (map :n :<Leader>dC ":DiffviewClose<CR>" {:noremap true :desc "Close"})
 ;     )
 
-(let [m (require :mini.diff)]
-    (m.setup {}))
+(local mini_diff (require :mini.diff))
+(mini_diff.setup {})
 
-{}
+(fn trim [s]
+   (s:gsub "^%s*(.-)%s*$" "%1"))
+
+(fn escape [s]
+    (s:gsub "[%-%.%+%[%]%(%)%$%^%%%?%*]" "%%%1"))
+
+(fn get_current_file_contents_at_merge_base []
+    (local root (trim (vim.fn.system [:git :rev-parse :--show-toplevel])))
+    (local current_path_abs (vim.fn.expand "%:p"))
+    (local current_path_from_git_root (string.gsub current_path_abs (escape (.. root "/")) ""))
+    (vim.notify (fv current_path_from_git_root))
+    (local merge_base (trim (vim.fn.system [:git :show-branch :--merge-base])))
+    (vim.fn.system [:git :show (.. merge_base ":" current_path_from_git_root)]))
+
+(fn set_merge_base_as_ref_text []
+    ;; TODO: OR, maybe we just need to configure this buffer to use source "none", so
+    ;; that it won't update, and we'll just be able to see the differences vs the text
+    ;; on disk. It only needs to be a real source if we want it to react to changes
+    ;; (which we probably do).
+    (mini_diff.toggle_overlay)
+    (mini_diff.set_ref_text 0 (get_current_file_contents_at_merge_base)))
+
+;; TODO: review mode: build on mini.diff's overlay view to create a mode where
+;; it is easy to review changes between the current state of files and a specific
+;; point in git history. E.g., vs another feature branch, vs master, vs the index.
+;;
+;; The idea would be that you turn the mode on (globally) and select the base.
+;; Then whenever you enter a file, the reference is taken from that base as the
+;; comparison point for mini.diff. Combine this with a way to jump between changed
+;; files (list collect from `git status --short`), and you'll bounce between files
+;; and they'll automatically have the diff calculated from the right point.
+;;
+;; This can probably replace my desired usage of Diffview entierly.
+
+{
+    ;; TODO: have this command reset the reference text to be the index or whatever...
+    :toggle_inline_changes mini_diff.toggle_overlay
+    :test set_merge_base_as_ref_text
+    ;; NOTE: disabled, only exports from open buffers
+    ; :export_to_quickfix #(vim.fn.setqflist (mini_diff.export :qf {:scope :all}))
+}
 

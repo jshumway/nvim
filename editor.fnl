@@ -139,11 +139,12 @@
 ;; --------------------------------------------------------------------
 ;; Copy
 
+(local osc52 (require :vim.ui.clipboard.osc52))
 (tset vim.g :clipboard {
     :name "OSC 52"
     :copy {
-        :+ (. (require :vim.ui.clipboard.osc52) :copy)
-        :* (. (require :vim.ui.clipboard.osc52) :copy)
+        :+ (osc52.copy :+)
+        :* (osc52.copy :*)
     }
 })
 

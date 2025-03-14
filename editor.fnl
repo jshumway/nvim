@@ -146,6 +146,11 @@
         :+ (osc52.copy :+)
         :* (osc52.copy :*)
     }
+    ;; NOTE: do not use osc52 for pasting.
+    :paste {
+        :+ (fn [])
+        :* (fn [])
+    }
 })
 
 {}

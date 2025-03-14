@@ -169,7 +169,8 @@
         {:mode :n :keys :<Leader>d :desc :+Diff}
     ]))
 
-(later-let [m (require :git)] nil)
+;; TODO: disable because pay-server is so big.
+;; (later-let [m (require :git)] nil)
 
 (when (vim.fn.filereadable :stripe.fnl)
     (later-let [m (require :stripe)] nil))

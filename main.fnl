@@ -124,6 +124,8 @@
 
 (now-let [m (require :theme)] nil)
 
+(now-let [m (require :starter)] nil)
+
 (later-let [m (require :navigation)]
     (map :n :<Leader>fr m.pick_recent {:noremap true :desc "Recent files"})
     (map :n :<leader>fe m.explore_files_at_current_path {:desc "File explorer"})

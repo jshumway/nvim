@@ -24,12 +24,12 @@
 ;; --------------------------------------------------------------------
 ;; Basics
 
-(tset vim.o :scrolloff 3)
+(set vim.o.scrolloff 3)
 
-(tset vim.o :tabstop 4)
-(tset vim.o :shiftwidth 4)
-(tset vim.o :softtabstop 4)
-(tset vim.o :expandtab true)
+(set vim.o.tabstop 4)
+(set vim.o.shiftwidth 4)
+(set vim.o.softtabstop 4)
+(set vim.o.expandtab true)
 
 ;; Shift indentation without losing selection.
 (vim.keymap.set :x :< :<gv {:noremap true})
@@ -58,6 +58,9 @@
 ;; Text manipulation
 
 (let [m (require :mini.comment)]
+    (m.setup {}))
+
+(let [m (require :mini.pairs)]
     (m.setup {}))
 
 ; (let [m (require :mini.move)]
@@ -118,20 +121,31 @@
     }))
 
 ;; --------------------------------------------------------------------
-;; Completion
+;; Completion & snippets
 
 (let [m (require :mini.completion)]
     (m.setup {}))
+
+(let [m (require :mini.snippets)]
+    (m.setup {
+        :snippets [
+            (m.gen_loader.from_file (.. MYVIMRC_ROOT "/snippets/all.json"))
+            (m.gen_loader.from_lang)
+        ]
+        :mappings {
+            :expand :<C-s>
+        }
+    }))
 
 ;; --------------------------------------------------------------------
 ;; Folding
 
 ;; https://www.jackfranklin.co.uk/blog/code-folding-in-vim-neovim/
-(tset vim.opt :foldmethod :expr)
-(tset vim.opt :foldexpr "v:lua.vim.treesitter.foldexpr()")
-(tset vim.opt :foldtext "")
-(tset vim.opt :foldenable true)
-(tset vim.opt :foldlevel 99)
+(set vim.opt.foldmethod :expr)
+(set vim.opt.foldexpr "v:lua.vim.treesitter.foldexpr()")
+(set vim.opt.foldtext "")
+(set vim.opt.foldenable true)
+(set vim.opt.foldlevel 99)
 ; (tset vim.opt :foldlevelstart 99)
 ; (tset vim.opt :foldnestmax 6)
 (vim.opt.fillchars:append {:fold  " "})
@@ -152,20 +166,6 @@
         :* (fn [])
     }
 })
-
-;; ---------------------------------------------------------------------
-;; TEMP: Snippets
-
-(let [m (require :mini.snippets)]
-    (m.setup {
-        :snippets [
-            (m.gen_loader.from_file (.. MYVIMRC_ROOT "/snippets/all.json"))
-            (m.gen_loader.from_lang)
-        ]
-        :mappings {
-            :expand :<C-s>
-        }
-    }))
 
 {}
 

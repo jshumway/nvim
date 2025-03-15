@@ -43,8 +43,8 @@
 
 (now-let [m (require :mini.basics)]
     (m.setup)
-    (tset vim.o :termguicolors true)
-    (tset vim.o :confirm true)
+    (set vim.o.termguicolors true)
+    (set vim.o.confirm true)
     (map :n :<leader>fE #(vim.cmd.edit (.. MYVIMRC_ROOT "main.fnl")) {:desc "Edit .nvimrc"}))
 
 (when (= vim.g.os :windows)
@@ -60,7 +60,7 @@
 ;; Setup notify early so any errors come through mini.notify.
 (now-let [m (require :mini.notify)]
     (m.setup)
-    (tset vim :notify (m.make_notify)))
+    (set vim.notify (m.make_notify)))
 
 (now-let [m (require :mini.icons)]
     (m.setup)

@@ -1,0 +1,7 @@
+{
+    "each iter": { "prefix": "eachi", "body": "(each [${1:v} ${2:iter}]\n\t$3)" },
+    "each ipairs": { "prefix": "each", "body": "(each [${1:i} ${2:v} (ipairs ${3:iter})]\n\t$4)" },
+    "each pairs": { "prefix": "eachp", "body": "(each [${1:k} ${2:v} (pairs ${3:iter})]\n\t$4)" },
+    "table": { "prefix": "{", "body": "{\n\t$1\n}" },
+    "array": { "prefix": "[", "body": "[\n\t$1\n]" }
+}

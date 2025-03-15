@@ -153,5 +153,19 @@
     }
 })
 
+;; ---------------------------------------------------------------------
+;; TEMP: Snippets
+
+(let [m (require :mini.snippets)]
+    (m.setup {
+        :snippets [
+            (m.gen_loader.from_file (.. MYVIMRC_ROOT "/snippets/all.json"))
+            (m.gen_loader.from_lang)
+        ]
+        :mappings {
+            :expand :<C-s>
+        }
+    }))
+
 {}
 

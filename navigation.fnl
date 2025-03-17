@@ -54,6 +54,12 @@
 (fn explore_files_at_current_path []
     (mini_files.open (string.gsub (vim.fn.expand "%:p") PATH_PATTERN "%1")))
 
+(local mini_deps (require :mini.deps))
+
+(let [_ (mini_deps.add :stevearc/quicker.nvim)
+      m (require :quicker)]
+    (m.setup))
+
 {
     :pick_recent mini_extra.pickers.visit_paths
     :pick_files mini_pick.builtin.files

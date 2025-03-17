@@ -60,8 +60,8 @@
 (let [m (require :mini.comment)]
     (m.setup {}))
 
-(let [m (require :mini.pairs)]
-    (m.setup {}))
+; (let [m (require :mini.pairs)]
+;     (m.setup {}))
 
 ; (let [m (require :mini.move)]
 ;     (m.setup {

@@ -23,6 +23,21 @@
         :highlight {:enable true}
     }))
 
+(let [_ (mini_deps.add {:source :nvim-treesitter/nvim-treesitter-textobjects})
+      m (require :mini.ai)]
+    (local spec_treesitter m.gen_spec.treesitter)
+    (m.setup {
+        :search_method :cover
+        :custom_textobjects {
+            :F (spec_treesitter {:a "@function.outer" :i "@function.inner"})
+            :C (spec_treesitter {:a "@statement.outer" :i "@statement.inner"})
+            :o (spec_treesitter {
+                :a ["@conditional.outer" "@loop.outer" "@assignment.outer"]
+                :i ["@conditional.inner" "@loop.inner" "@assignment.inner"]
+            })
+        }
+    }))
+
 (let [_ (mini_deps.add {:source :neovim/nvim-lspconfig})
       m (require :lspconfig)]
     nil

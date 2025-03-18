@@ -157,6 +157,7 @@
     (map :i :<C-t> m.insert_toggle_terminal {:noremap true :silent true})
     (m.on_term_enter (fn [ctx]
         (map :t :<C-t> m.normal_toggle_terminal {:buffer ctx.buf :noremap true :silent true})
+        (map :t :<ESC> m.escape_from_terminal_insert_mode {:buffer ctx.buf :noremap true :silent true})
     )))
 
 (later-let [m (require :diff)]

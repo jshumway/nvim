@@ -21,5 +21,7 @@
 
     :normal_toggle_terminal "<Cmd>exe v:count1 . \"ToggleTerm\"<CR>"
     :insert_toggle_terminal "<Esc><Cmd>exe v:count1 . \"ToggleTerm\"<CR>"
+
+    :escape_from_terminal_insert_mode "<C-\\><C-n>"
 }
 

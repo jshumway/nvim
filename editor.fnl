@@ -60,6 +60,10 @@
 (let [m (require :mini.comment)]
     (m.setup {}))
 
+(let [m (require :mini.surround)]
+    (m.setup))
+
+
 ; (let [m (require :mini.pairs)]
 ;     (m.setup {}))
 

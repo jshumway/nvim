@@ -2,13 +2,10 @@
 ;; Editor Advanced
 
 ;; TODO:
-;; - enable conform
-;; - lsp motions: expand / shrink selection
 ;; - add linter / lsp error diagnostics stuff to status bar
 ;; - lsp rename opens buffers that it modifies... either want it to write automatically
 ;;   (so I can manage via git) or be able to quickly navigate between them, by like
 ;;   having the modified files in a quick list
-;; - setup generic LSP stuff and have lang specific stuff in their own files?
 
 (local mini_deps (require :mini.deps))
 
@@ -30,7 +27,8 @@
         :search_method :cover
         :custom_textobjects {
             :F (spec_treesitter {:a "@function.outer" :i "@function.inner"})
-            :C (spec_treesitter {:a "@statement.outer" :i "@statement.inner"})
+            :C (spec_treesitter {:a "@comment.outer" :i "@comment.inner"})
+            :c (spec_treesitter {:a "@statement.outer" :i "@statement.inner"})
             :o (spec_treesitter {
                 :a ["@conditional.outer" "@loop.outer" "@assignment.outer"]
                 :i ["@conditional.inner" "@loop.inner" "@assignment.inner"]
@@ -40,36 +38,24 @@
 
 (let [_ (mini_deps.add {:source :neovim/nvim-lspconfig})
       m (require :lspconfig)]
-    nil
+    nil)
 
-    ; (each [_ lsp (ipairs [:gopls])]
-    ;     ((. m lsp :setup) {}))
-    )
-
-; (later-let [_ (mini_deps.add {:source :stevearc/conform.nvim
-;                     :depends ["git@git.corp.stripe.com:stevearc/nvim-stripe-configs"]})
-;             m (require :conform)]
-;     (m.setup {
-;         :formatters_by_ft {
-;             :javascript ["prettierd"]
-;             :typescript ["prettierd"]
-;             :javascriptreact [ "prettierd" ]
-;             :typescriptreact [ "prettierd" ]
-;             :html [ "prettierd" ]
-;             :json [ "prettierd" ]
-;             :jsonc [ "prettierd" ]
-;             :graphql [ "prettierd" ]
-;             :go [:goimports :gofmt]
-;             :lua [ "stylua" ]
-;             :python [ "zoolander_format_python" ]
-;             :sql [ "zoolander_format_sql" ]
-;             :bzl [ "zoolander_format_build" ]
-;             :java [ "zoolander_format_java" ]
-;             :scala [ "zoolander_format_scala" ]
-;             :terraform [ "sc_terraform" ]
-;         }
-;         :format_after_save {:lsp_format :fallback}
-;     }))
+(let [_ (mini_deps.add {:source :stevearc/conform.nvim})
+      m (require :conform)]
+    (m.setup {
+        :formatters_by_ft {
+            :javascript ["prettierd"]
+            :typescript ["prettierd"]
+            :javascriptreact ["prettierd"]
+            :typescriptreact ["prettierd"]
+            :html ["prettierd"]
+            :json ["prettierd"]
+            :jsonc ["prettierd"]
+            :graphql ["prettierd"]
+            :go [:goimports :gofmt]
+        }
+        :format_after_save {:lsp_format :fallback}
+    }))
 
 (local mini-extra (require :mini.extra))
 

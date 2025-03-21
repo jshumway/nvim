@@ -177,7 +177,6 @@
     ; :send_line iron.send_line
     ; :send_until_cursor iron.send_until_cursor
     ; :send_file iron.send_file
-    ; :send_visual iron.send_visual
     ; :send_paragraph iron.send_paragraph
     ; :send_code_block #(iron.send_code_block false)
     ; :send_code_block_and_move #(iron.send_code_block true.)
@@ -191,10 +190,10 @@
     (map :n :<Leader>mC m.repl.exit {:desc "Exit repl"})
     (map :n :<Leader>mR m.repl.restart {:desc "Restart repl"})
     (map :n :<Leader>m<C-c> m.repl.interrupt {:desc "Send interrupt"})
+    (map :n :<Leader>mq m.repl.send_q {:desc "Send 'q'"})
     (map :n :<Leader>m<C-l> m.repl.clear {:desc "Clear repl"})
-    ;
+
     (map :v :<Leader>mm m.repl.send_visual {:desc "Send visual"})
-    ; (map :n :<Leader>m m.repl. {:desc ""})
 
     (table.insert module_clues [
         {:mode :n :keys :<Leader>l :desc :+Lsp}
@@ -237,7 +236,7 @@
 (later-let [m (require :lang.fennel)] nil)
 
 (later-let [iron_config (require :iron.config)]
-    (tset iron_config.values.repl_definition :sh {:command [:zsh]}))
+    (tset iron_config.repl_definition :sh {:command [:zsh]}))
 
 ;; ---------------------------------------------------------------------
 ;; Clues

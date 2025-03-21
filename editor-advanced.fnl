@@ -140,6 +140,7 @@
         :cr #(iron.send nil (string.char 13))
         :interrupt #(iron.send nil (string.char 3))
         :clear #(iron.send nil (string.char 12))
+        :send_q #(iron.send nil :q)
         :exit iron.close_repl
     }
 }

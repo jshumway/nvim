@@ -87,6 +87,9 @@
     (map :n :<Leader>cC "\"+y" {:noremap true :desc "Start copy"})
     (map :v :<Leader>cc "\"+y" {:noremap true :desc "Copy selection"})
 
+    (map :n :<C-u> m.half_page_up_center {:noremap true})
+    (map :n :<C-d> m.half_page_down_center {:noremap true})
+
     (table.insert module_clues [
         {:mode :x :keys :<Leader>c :desc :+Copy}
         {:mode :n :keys :<Leader>c :desc :+Copy}

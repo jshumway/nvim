@@ -172,5 +172,8 @@
     }
 })
 
-{}
+{
+    :half_page_up_center "<C-u>zz"
+    :half_page_down_center "<C-d>zz"
+}
 

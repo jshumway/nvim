@@ -60,8 +60,13 @@
       m (require :quicker)]
     (m.setup))
 
+;; TODO: quickfix / location list nav?
+;; TODO: arglist nav + management
+;; TODO: marks?
+
 {
-    :pick_recent mini_extra.pickers.visit_paths
+    :pick_recent #(mini_extra.pickers.visit_paths {:recency_weight 1})
+    :pick_frequent #(mini_extra.pickers.visit_paths {:recency_weight 0})
     :pick_files mini_pick.builtin.files
     :pick_grep_live mini_pick.builtin.grep_live
     :pick_grep mini_pick.builtin.grep

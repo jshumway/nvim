@@ -39,6 +39,8 @@
     (vim.api.nvim_set_hl 0 :DiagnosticSignWarn {:bg palette.bg})
     (vim.api.nvim_set_hl 0 :DiagnosticSignOk {:bg palette.bg})
 
+    ;; (vim.api.nvim_set_hl 0 :SpellBad {:underline true})
+
     (vim.api.nvim_set_hl 0 :Folded {:bg "#1f212e"}))
 
 {}

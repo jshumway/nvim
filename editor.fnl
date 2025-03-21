@@ -30,6 +30,7 @@
 (set vim.o.shiftwidth 4)
 (set vim.o.softtabstop 4)
 (set vim.o.expandtab true)
+(set vim.o.spell true)
 
 ;; Shift indentation without losing selection.
 (vim.keymap.set :x :< :<gv {:noremap true})

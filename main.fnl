@@ -172,21 +172,48 @@
         (map :n :<Leader>la m.code_action {:buffer ctx.buf :desc "Code action"})
         (map :n :<Leader>lr m.rename {:buffer ctx.buf :desc "Rename symbol"})))
 
+    ; :send_motion #(iron.run_motion :send_motion)
+    ; :send_mark iron.send_mark
+    ; :send_line iron.send_line
+    ; :send_until_cursor iron.send_until_cursor
+    ; :send_file iron.send_file
+    ; :send_visual iron.send_visual
+    ; :send_paragraph iron.send_paragraph
+    ; :send_code_block #(iron.send_code_block false)
+    ; :send_code_block_and_move #(iron.send_code_block true.)
+
+    ; :mark_motion #(iron.run_motion :mark_motion)
+    ; :mark_visual iron.mark_visual
+    ; :remove_mark iron_marks.drop_last
+    ; :clear_hl iron_marks.clear_hl
+
+    (map :n :<Leader>mt m.repl.toggle {:desc "Toggle repl"})
+    (map :n :<Leader>mC m.repl.exit {:desc "Exit repl"})
+    (map :n :<Leader>mR m.repl.restart {:desc "Restart repl"})
+    (map :n :<Leader>m<C-c> m.repl.interrupt {:desc "Send interrupt"})
+    (map :n :<Leader>m<C-l> m.repl.clear {:desc "Clear repl"})
+    ;
+    (map :v :<Leader>mm m.repl.send_visual {:desc "Send visual"})
+    ; (map :n :<Leader>m m.repl. {:desc ""})
+
     (table.insert module_clues [
         {:mode :n :keys :<Leader>l :desc :+Lsp}
+        {:mode :n :keys :<Leader>m :desc :+Mode}
+        {:mode :x :keys :<Leader>m :desc :+Mode}
     ]))
 
 (later-let [m (require :terminal)]
     (map :n :<C-t> m.normal_toggle_terminal {:noremap true :silent true})
     (map :i :<C-t> m.insert_toggle_terminal {:noremap true :silent true})
 
+    (map :t :<C-t> m.normal_toggle_terminal {:noremap true :silent true})
+    (map :t :<ESC> m.escape_from_terminal_insert_mode {:noremap true :silent true})
+    ;; NOTE: <C-k><C-k> prevents conflict with the readline command <C-k>
+    ;; used to kill the rest of the line.
+    (map :t :<C-k><C-k> m.terminal_insert_focus_window_up {:noremap true :silent true})
+
     (m.on_term_enter (fn [ctx]
-        (map :t :<C-t> m.normal_toggle_terminal {:buffer ctx.buf :noremap true :silent true})
-        (map :t :<ESC> m.escape_from_terminal_insert_mode {:buffer ctx.buf :noremap true :silent true})
-        ;; NOTE: <C-k><C-k> prevents conflict with the readline command <C-k>
-        ;; used to kill the rest of the line.
-        (map :t :<C-k><C-k> m.terminal_insert_focus_window_up {:buffer ctx.buf :noremap true :silent true})
-    ))
+        (map :t :<C-t> m.normal_toggle_terminal {:buffer ctx.buf :noremap true :silent true})))
     )
 
 (later-let [m (require :diff)]
@@ -208,6 +235,9 @@
 
 (later-let [m (require :lang.ruby)] nil)
 (later-let [m (require :lang.fennel)] nil)
+
+(later-let [iron_config (require :iron.config)]
+    (tset iron_config.values.repl_definition :sh {:command [:zsh]}))
 
 ;; ---------------------------------------------------------------------
 ;; Clues

@@ -32,6 +32,8 @@
 (set vim.o.expandtab true)
 (set vim.o.spell true)
 
+(set vim.o.spelloptions :camel)
+
 ;; Shift indentation without losing selection.
 (vim.keymap.set :x :< :<gv {:noremap true})
 (vim.keymap.set :x :> :>gv {:noremap true})
@@ -154,6 +156,9 @@
 ; (tset vim.opt :foldlevelstart 99)
 ; (tset vim.opt :foldnestmax 6)
 (vim.opt.fillchars:append {:fold  " "})
+
+;; TODO: a hotkey that combines zM and zv (to fold everything, then open back up
+;; to reveal the cursor, which is basically "fold below cursor's level"... kinda.
 
 ;; --------------------------------------------------------------------
 ;; Copy

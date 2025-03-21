@@ -23,5 +23,7 @@
     :insert_toggle_terminal "<Esc><Cmd>exe v:count1 . \"ToggleTerm\"<CR>"
 
     :escape_from_terminal_insert_mode "<C-\\><C-n>"
+
+    :terminal_insert_focus_window_up "<C-\\><C-N><C-w>k"
 }
 

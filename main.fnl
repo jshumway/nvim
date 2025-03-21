@@ -113,10 +113,28 @@
     (map :n :<Leader>ww m.last_window {:noremap true :desc "Last window"})
     (map :n :<Leader>wc m.close_window {:noremap true :desc "Close window"})
     (map :n :<Leader>wv m.vertical_split {:noremap true :desc "Vertical split"})
+    (map :n :<Leader>wv m.horizontal_split {:noremap true :desc "Horizontal split"})
     (map :n :<Leader>wR m.rebalance_splits {:noremap true :desc "Rebalance splits"})
+
+    (map :n :<Leader>wh m.focus_window_left {:noremap true :desc "Focus left"})
+    (map :n :<Leader>wj m.focus_window_down {:noremap true :desc "Focus down"})
+    (map :n :<Leader>wk m.focus_window_up {:noremap true :desc "Focus up"})
+    (map :n :<Leader>wl m.focus_window_right {:noremap true :desc "Focus right"})
+
+    (map :n :<C-h> m.focus_window_left {:noremap true})
+    (map :n :<C-j> m.focus_window_down {:noremap true})
+    (map :n :<C-k> m.focus_window_up {:noremap true})
+    (map :n :<C-l> m.focus_window_right {:noremap true})
 
     (table.insert module_clues [
         {:mode :n :keys :<Leader>w :desc :+Windows}
+        {:mode :n :keys :<Leader>wh :postkeys :<Leader>w}
+        {:mode :n :keys :<Leader>wj :postkeys :<Leader>w}
+        {:mode :n :keys :<Leader>wk :postkeys :<Leader>w}
+        {:mode :n :keys :<Leader>wl :postkeys :<Leader>w}
+        {:mode :n :keys :<Leader>wc :postkeys :<Leader>w}
+        {:mode :n :keys :<Leader>wv :postkeys :<Leader>w}
+        {:mode :n :keys :<Leader>wh :postkeys :<Leader>w}
     ]))
 
 (now-let [m (require :theme)] nil)
@@ -138,6 +156,9 @@
     ]))
 
 (later-let [m (require :editor-advanced)]
+    (map :i :<Tab> m.move_down_suggestions {:noremap true :expr true})
+    (map :i :<S-Tab> m.move_down_suggestions {:noremap true :expr true})
+
     (m.on_lsp_attach (fn [ctx]
         (map :n :gd m.definition {:buffer ctx.buf :desc "Goto definition"})
         (map :n :gD m.type_definition {:buffer ctx.buf :desc "Goto type"})
@@ -158,10 +179,15 @@
 (later-let [m (require :terminal)]
     (map :n :<C-t> m.normal_toggle_terminal {:noremap true :silent true})
     (map :i :<C-t> m.insert_toggle_terminal {:noremap true :silent true})
+
     (m.on_term_enter (fn [ctx]
         (map :t :<C-t> m.normal_toggle_terminal {:buffer ctx.buf :noremap true :silent true})
         (map :t :<ESC> m.escape_from_terminal_insert_mode {:buffer ctx.buf :noremap true :silent true})
-    )))
+        ;; NOTE: <C-k><C-k> prevents conflict with the readline command <C-k>
+        ;; used to kill the rest of the line.
+        (map :t :<C-k><C-k> m.terminal_insert_focus_window_up {:buffer ctx.buf :noremap true :silent true})
+    ))
+    )
 
 (later-let [m (require :diff)]
     (map :n :<Leader>dS m.toggle_inline_changes {:noremap true :silent true :desc "Show diff inline"})

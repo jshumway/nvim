@@ -60,6 +60,9 @@
 (local mini-extra (require :mini.extra))
 
 {
+    :move_down_suggestions "pumvisible() ? \"\\<C-n>\" : \"\\<Tab>\""
+    :move_up_suggestions "pumvisible() ? \"\\<C-p>\" : \"\\<S-Tab>\""
+
     :on_lsp_attach
     #(vim.api.nvim_create_autocmd :LspAttach {:pattern "*" :group augroup_module :callback $})
 

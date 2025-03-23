@@ -40,6 +40,13 @@
       m (require :lspconfig)]
     nil)
 
+(local orig_open_floating_window vim.lsp.util.open_floating_preview)
+(fn custom_open_floating_preview [contents syntax opts ...]
+    (tset opts :max_width 120)
+    (tset opts :border :single)
+    (local (bufnr winid) (orig_open_floating_window contents syntax opts ...)))
+(tset _G.vim.lsp.util :open_floating_preview custom_open_floating_preview)
+
 (let [_ (mini_deps.add {:source :stevearc/conform.nvim})
       m (require :conform)]
     (m.setup {
@@ -106,17 +113,16 @@
     :on_lsp_attach
     #(vim.api.nvim_create_autocmd :LspAttach {:pattern "*" :group augroup_module :callback $})
 
-    :definition vim.lsp.buf.definition
-    :type_definition #(mini-extra.pickers.lsp {:scope :type_definition})
-    :references #(mini-extra.pickers.lsp {:scope :references})
-    :implementation #(mini-extra.pickers.lsp {:scope :implementation})
+    :code_action vim.lsp.buf.code_action
     :declaration #(mini-extra.pickers.lsp {:scope :declaration})
-
-    :signature_help vim.lsp.buf.signature_help 
-    :hover vim.lsp.buf.hover 
-
-    :rename vim.lsp.buf.rename 
-    :code_action vim.lsp.buf.code_action 
+    :definition vim.lsp.buf.definition
+    :hover vim.lsp.buf.hover
+    :implementation #(mini-extra.pickers.lsp {:scope :implementation})
+    :outline vim.lsp.buf.document_symbol
+    :references #(mini-extra.pickers.lsp {:scope :references})
+    :rename vim.lsp.buf.rename
+    :signature_help vim.lsp.buf.signature_help
+    :type_definition #(mini-extra.pickers.lsp {:scope :type_definition})
 
     :repl {
         :send_motion #(iron.run_motion :send_motion)

@@ -57,6 +57,12 @@
     })
     (vim.cmd "highlight! link MiniJump Search"))
 
+(let [m (require :mini.misc)]
+    (m.setup)
+    (m.setup_restore_cursor {
+        :center true
+    }))
+
 ;; --------------------------------------------------------------------
 ;; Text manipulation
 
@@ -65,7 +71,6 @@
 
 (let [m (require :mini.surround)]
     (m.setup))
-
 
 ; (let [m (require :mini.pairs)]
 ;     (m.setup {}))
@@ -127,6 +132,9 @@
         }
     }))
 
+(let [m (require :mini.trailspace)]
+    (m.setup))
+
 ;; --------------------------------------------------------------------
 ;; Completion & snippets
 
@@ -180,5 +188,8 @@
 {
     :half_page_up_center "<C-u>zz"
     :half_page_down_center "<C-d>zz"
+
+    :search_next_centered :nzz
+    :search_prev_centered :Nzz
 }
 

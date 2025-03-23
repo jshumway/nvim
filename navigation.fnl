@@ -76,3 +76,4 @@
     :resume_last_picker mini_pick.builtin.resume
     :pick_help mini_pick.builtin.help
 }
+

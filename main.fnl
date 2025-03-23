@@ -39,7 +39,6 @@
 ;; TODO:
 ;; - make a bunch of commands silent (they currently pollute the command bar)
 ;; - hotkey to view notify history
-;; - pressing esc in normal mode clears highlight (:nohl) (or maybe not tbh)
 
 (now-let [m (require :mini.basics)]
     (m.setup)
@@ -83,12 +82,15 @@
 (local module_clues [])
 
 (now-let [m (require :editor)]
-    (map :n :<Leader>cc "\"+yy" {:noremap true :desc "Copy line"})
-    (map :n :<Leader>cC "\"+y" {:noremap true :desc "Start copy"})
+    ; (map :n :<Leader>cc "\"+yy" {:noremap true :desc "Copy line"})
+    (map :n :<Leader>cc "\"+y" {:noremap true :desc "Copy motion"})
     (map :v :<Leader>cc "\"+y" {:noremap true :desc "Copy selection"})
 
     (map :n :<C-u> m.half_page_up_center {:noremap true})
     (map :n :<C-d> m.half_page_down_center {:noremap true})
+
+    (map :n :n m.search_next_centered {:noremap true})
+    (map :n :N m.search_prev_centered {:noremap true})
 
     (table.insert module_clues [
         {:mode :x :keys :<Leader>c :desc :+Copy}
@@ -126,6 +128,8 @@
     (map :n :<C-k> m.focus_window_up {:noremap true})
     (map :n :<C-l> m.focus_window_right {:noremap true})
 
+    (map :n :<Leader>wz m.toggle_zoom_window {:noremap true})
+
     (table.insert module_clues [
         {:mode :n :keys :<Leader>w :desc :+Windows}
         {:mode :n :keys :<Leader>wh :postkeys :<Leader>w}
@@ -143,12 +147,12 @@
 
 (later-let [m (require :navigation)]
     (map :n :<Leader>fr m.pick_recent {:noremap true :desc "Recent files"})
-    (map :n :<leader>fe m.explore_files_at_current_path {:desc "File explorer"})
-    (map :n :<leader>ff m.pick_files {:desc "Find files"})
-    (map :n :<leader>r m.resume_last_picker {:desc "Last picker"})
-    (map :n :<leader>si m.pick_grep_live {:desc "Interactive grep"})
-    (map :n :<leader>sg m.pick_grep {:desc "Grep"})
-    (map :n :<leader>sh m.pick_help {:desc "Help"})
+    (map :n :<Leader>fe m.explore_files_at_current_path {:desc "File explorer"})
+    (map :n :<Leader>ff m.pick_files {:desc "Find files"})
+    (map :n :<Leader>r m.resume_last_picker {:desc "Last picker"})
+    (map :n :<Leader>si m.pick_grep_live {:desc "Interactive grep"})
+    (map :n :<Leader>sg m.pick_grep {:desc "Grep"})
+    (map :n :<Leader>sh m.pick_help {:desc "Help"})
 
     (table.insert module_clues [
         {:mode :n :keys :<Leader>f :desc :+Files}
@@ -160,17 +164,17 @@
     (map :i :<S-Tab> m.move_down_suggestions {:noremap true :expr true})
 
     (m.on_lsp_attach (fn [ctx]
-        (map :n :gd m.definition {:buffer ctx.buf :desc "Goto definition"})
         (map :n :gD m.type_definition {:buffer ctx.buf :desc "Goto type"})
-        (map :n :grr m.references {:buffer ctx.buf :desc "Goto references"})
+        (map :n :gO m.outline {:buffer ctx.buf :desc "Outline"})
+        (map :n :gd m.definition {:buffer ctx.buf :desc "Goto definition"})
         (map :n :gi m.implementation {:buffer ctx.buf :desc "Goto implementation"})
+        (map :n :gra m.code_action {:buffer ctx.buf :desc "Code action"})
         (map :n :grd m.declaration {:buffer ctx.buf :desc "Goto declaration"})
-
-        (map :i :<C-s> m.signature_help {:buffer ctx.buf :desc "Signature help"})
-        (map :n :<Leader>ld m.hover {:buffer ctx.buf :desc "Hover documentation"})
-
-        (map :n :<Leader>la m.code_action {:buffer ctx.buf :desc "Code action"})
-        (map :n :<Leader>lr m.rename {:buffer ctx.buf :desc "Rename symbol"})))
+        (map :n :gri m.implementation {:buffer ctx.buf :desc "Goto implementation"})
+        (map :n :grn m.rename {:buffer ctx.buf :desc "Rename symbol"})
+        (map :n :grr m.references {:buffer ctx.buf :desc "Goto references"})
+        ; (map :i :<C-s> m.signature_help {:buffer ctx.buf :desc "Signature help"})
+        ))
 
     ; :send_motion #(iron.run_motion :send_motion)
     ; :send_mark iron.send_mark
@@ -227,7 +231,9 @@
 ;; (later-let [m (require :git)] nil)
 
 (when (vim.fn.filereadable :stripe.fnl)
-    (later-let [m (require :stripe)] nil))
+    (later-let [m (require :stripe)]
+        ;; TODO: ideally this would only be added to Ruby buffers.
+        (map :n :<Leader>cS m.copy_symbol_name {:noremap true :desc "Copy symbol name"})))
 
 ;; ---------------------------------------------------------------------
 ;; Language modules

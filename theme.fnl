@@ -41,6 +41,8 @@
 
     ;; (vim.api.nvim_set_hl 0 :SpellBad {:underline true})
 
+    (vim.api.nvim_set_hl 0 :MiniTrailspace {:bg palette.error})
+
     (vim.api.nvim_set_hl 0 :Folded {:bg "#1f212e"}))
 
 {}

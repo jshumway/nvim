@@ -19,6 +19,7 @@
             (.. mini-deps.config.path.package :/pack/deps/start/*/lua))
 
         (set vim.opt_local.lisp false)
+        (set vim.b.better_foldtext_lisp_mode true)
         )
     })
 

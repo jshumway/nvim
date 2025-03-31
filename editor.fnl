@@ -155,18 +155,23 @@
 ;; --------------------------------------------------------------------
 ;; Folding
 
-;; https://www.jackfranklin.co.uk/blog/code-folding-in-vim-neovim/
+; ;; https://www.jackfranklin.co.uk/blog/code-folding-in-vim-neovim/
 (set vim.opt.foldmethod :expr)
 (set vim.opt.foldexpr "v:lua.vim.treesitter.foldexpr()")
-(set vim.opt.foldtext "")
 (set vim.opt.foldenable true)
 (set vim.opt.foldlevel 99)
 ; (tset vim.opt :foldlevelstart 99)
 ; (tset vim.opt :foldnestmax 6)
-(vim.opt.fillchars:append {:fold  " "})
+(vim.opt.fillchars:append {:fold " "})
+(set vim.opt.foldminlines 2)
 
 ;; TODO: a hotkey that combines zM and zv (to fold everything, then open back up
 ;; to reveal the cursor, which is basically "fold below cursor's level"... kinda.
+;;
+;; Also one for za zA (i.e., open everything under the fold I'm currently in)
+
+(local better_foldtext (require :better_foldtext))
+(set vim.opt.foldtext "v:lua.better_foldtext_foldtext()")
 
 ;; --------------------------------------------------------------------
 ;; Copy

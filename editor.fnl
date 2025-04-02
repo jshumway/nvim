@@ -163,15 +163,18 @@
 ; (tset vim.opt :foldlevelstart 99)
 ; (tset vim.opt :foldnestmax 6)
 (vim.opt.fillchars:append {:fold " "})
-(set vim.opt.foldminlines 2)
+(set vim.opt.foldminlines 3)
 
 ;; TODO: a hotkey that combines zM and zv (to fold everything, then open back up
 ;; to reveal the cursor, which is basically "fold below cursor's level"... kinda.
 ;;
 ;; Also one for za zA (i.e., open everything under the fold I'm currently in)
 
-(local better_foldtext (require :better_foldtext))
-(set vim.opt.foldtext "v:lua.better_foldtext_foldtext()")
+(set vim.opt.foldtext "")
+
+;; Too slow on large buffers.
+; (local better_foldtext (require :better_foldtext))
+; (set vim.opt.foldtext "v:lua.better_foldtext_foldtext()")
 
 ;; --------------------------------------------------------------------
 ;; Copy

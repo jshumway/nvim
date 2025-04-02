@@ -5,7 +5,7 @@
 
 ;; NOTE: this only supports reloading this specific file, not any of the
 ;; files that this one `requires`.
-(vim.api.nvim_create_autocmd :BufWritePost { 
+(vim.api.nvim_create_autocmd :BufWritePost {
     :group augroup_user
     :pattern "main.fnl"
     :callback #(do

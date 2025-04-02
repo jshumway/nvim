@@ -64,6 +64,9 @@
 ;; TODO: arglist nav + management
 ;; TODO: marks?
 
+(mini_deps.add {:source "lewis6991/fileline.nvim"})
+(vim.cmd "packadd fileline.nvim")
+
 {
     :pick_recent #(mini_extra.pickers.visit_paths {:recency_weight 1})
     :pick_frequent #(mini_extra.pickers.visit_paths {:recency_weight 0})

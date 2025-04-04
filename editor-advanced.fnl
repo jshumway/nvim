@@ -85,7 +85,8 @@
         :metas repl_metas
     })
 
-    (yr.register_text_objects [{
+    (local yr_ext_cc (require :yarepl.extensions.code_cell))
+    (yr_ext_cc.register_text_objects [{
         :key :c
         :start_pattern "```.+"
         :end_pattern "```$"

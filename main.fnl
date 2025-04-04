@@ -177,14 +177,7 @@
         (map :n :grr m.references {:buffer ctx.buf :desc "Goto references"})
         ))
 
-        ; :send_visual "<Plug>(REPLSendVisual)"
-        ; :send_line "<Plug>(REPLSendLine)"
-        ; :send_operator "<Plug>(REPLSendOperator)"
-        ; :send_string "<Plug>(REPLExec)"
-        ; :close "<Plug>(REPLClose)"
-        ; :hide "<Plug>(REPLHide)"
-        ; :toggle_focus "<Plug>(REPLHideOrFocus)"
-
+    ;; Repl
     (map :n :<Leader>mf m.repl.focus {:desc "Toggle repl"})
     (map :n :<Leader>mC m.repl.close {:desc "Exit repl"})
     (map :n :<Leader>mM m.repl.send_line {:desc "Send line"})
@@ -220,19 +213,40 @@
 ;; TODO: disable because pay-server is so big.
 ;; (later-let [m (require :git)] nil)
 
+;; ---------------------------------------------------------------------
+;; Language modules
+
+;; TODO: okay, I'm running into a problem. There are plugins where I need to put
+;; extra stuff into the setup call, but I call setup at the top of the module
+;; and that happens before the "add-on" files, like the language specific ones.
+;;
+;; I'm also having trouble with the filetype specific stuff, because that feels
+;; trickier to manage.
+;;
+;; I feel like I'm probably going to have to give _my_ modules .setup calls, along
+;; with little helpers that other modules can use to add things to setup lists.
+;; That will also allow these modules to expose helper functions, since I won't
+;; be running the top-level stuff every time.
+;;
+;; It _might_ also open the door to broader config reloading. We'll see.
+
 (when (vim.fn.filereadable :stripe.fnl)
     (later-let [m (require :stripe)]
         ;; TODO: ideally this would only be added to Ruby buffers.
         (map :n :<Leader>cS m.copy_symbol_name {:noremap true :desc "Copy symbol name"})))
 
-;; ---------------------------------------------------------------------
-;; Language modules
-
 (later-let [m (require :lang.ruby)] nil)
 (later-let [m (require :lang.fennel)] nil)
 
 ;; ---------------------------------------------------------------------
-;; Clues
+;; Final setup
+;;
+;; Various modules allow other modules to add to their configuration. At
+;; this point that should be finished, so we can finalize the setup for
+;; such modules.
+
+(let [m (require :editor-advanced)]
+    (m.setup))
 
 (later-let [m (require :mini.clue)]
     (local triggers [

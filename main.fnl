@@ -159,7 +159,7 @@
         {:mode :n :keys :<Leader>s :desc :+Search}
     ]))
 
-(later-let [m (require :editor-advanced)]
+(now-let [m (require :editor-advanced)]
     ;; Completion pop-up navigation.
     (map :i :<Tab> m.move_down_suggestions {:noremap true :expr true})
     (map :i :<S-Tab> m.move_down_suggestions {:noremap true :expr true})
@@ -231,12 +231,12 @@
 ;; It _might_ also open the door to broader config reloading. We'll see.
 
 (when (vim.fn.filereadable :stripe.fnl)
-    (later-let [m (require :stripe)]
+    (now-let [m (require :stripe)]
         ;; TODO: ideally this would only be added to Ruby buffers.
         (map :n :<Leader>cS m.copy_symbol_name {:noremap true :desc "Copy symbol name"})))
 
-(later-let [m (require :lang.ruby)] nil)
-(later-let [m (require :lang.fennel)] nil)
+(now-let [m (require :lang.ruby)] nil)
+(now-let [m (require :lang.fennel)] nil)
 
 ;; ---------------------------------------------------------------------
 ;; Final setup

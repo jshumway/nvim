@@ -29,61 +29,61 @@
 
 (local augroup_module (vim.api.nvim_create_augroup :user_editor_advanced {:clear true}))
 
+(let [_ (mini_deps.add {:source :nvim-treesitter/nvim-treesitter
+             :checkout :master :monitor :main
+             :hooks {:post_checkout #(vim.cmd :TSUpdate)}})
+      m (require :nvim-treesitter.configs)]
+    (m.setup {
+        :ensure_installed [:lua :vimdoc :ruby :fennel]
+        :highlight {:enable true}
+    }))
+
+(let [_ (mini_deps.add {:source :nvim-treesitter/nvim-treesitter-textobjects})
+      m (require :mini.ai)]
+    (local spec_treesitter m.gen_spec.treesitter)
+    (m.setup {
+        :search_method :cover
+        :custom_textobjects {
+            :F (spec_treesitter {:a "@function.outer" :i "@function.inner"})
+            :C (spec_treesitter {:a "@comment.outer" :i "@comment.inner"})
+            :c (spec_treesitter {:a "@statement.outer" :i "@statement.inner"})
+            :o (spec_treesitter {
+                :a ["@conditional.outer" "@loop.outer" "@assignment.outer"]
+                :i ["@conditional.inner" "@loop.inner" "@assignment.inner"]
+            })
+        }
+    }))
+
+(let [_ (mini_deps.add {:source :neovim/nvim-lspconfig})
+      m (require :lspconfig)]
+    nil)
+
+(let [_ (mini_deps.add {:source :stevearc/conform.nvim})
+      m (require :conform)]
+    (m.setup {
+        :formatters_by_ft {
+            :javascript ["prettierd"]
+            :typescript ["prettierd"]
+            :javascriptreact ["prettierd"]
+            :typescriptreact ["prettierd"]
+            :html ["prettierd"]
+            :json ["prettierd"]
+            :jsonc ["prettierd"]
+            :graphql ["prettierd"]
+            :go [:goimports :gofmt]
+        }
+        :format_after_save {:lsp_format :fallback}
+    }))
+
+(mini_deps.add {:source "milanglacier/yarepl.nvim"})
+
 (fn setup []
-    (let [_ (mini_deps.add {:source :nvim-treesitter/nvim-treesitter
-                 :checkout :master :monitor :main
-                 :hooks {:post_checkout #(vim.cmd :TSUpdate)}})
-          m (require :nvim-treesitter.configs)]
-        (m.setup {
-            :ensure_installed [:lua :vimdoc :ruby :fennel]
-            :highlight {:enable true}
-        }))
-
-    (let [_ (mini_deps.add {:source :nvim-treesitter/nvim-treesitter-textobjects})
-          m (require :mini.ai)]
-        (local spec_treesitter m.gen_spec.treesitter)
-        (m.setup {
-            :search_method :cover
-            :custom_textobjects {
-                :F (spec_treesitter {:a "@function.outer" :i "@function.inner"})
-                :C (spec_treesitter {:a "@comment.outer" :i "@comment.inner"})
-                :c (spec_treesitter {:a "@statement.outer" :i "@statement.inner"})
-                :o (spec_treesitter {
-                    :a ["@conditional.outer" "@loop.outer" "@assignment.outer"]
-                    :i ["@conditional.inner" "@loop.inner" "@assignment.inner"]
-                })
-            }
-        }))
-
-    (let [_ (mini_deps.add {:source :neovim/nvim-lspconfig})
-          m (require :lspconfig)]
-        nil)
-
     (overwrite_lsp_open_floating_preview)
-
-    (let [_ (mini_deps.add {:source :stevearc/conform.nvim})
-          m (require :conform)]
-        (m.setup {
-            :formatters_by_ft {
-                :javascript ["prettierd"]
-                :typescript ["prettierd"]
-                :javascriptreact ["prettierd"]
-                :typescriptreact ["prettierd"]
-                :html ["prettierd"]
-                :json ["prettierd"]
-                :jsonc ["prettierd"]
-                :graphql ["prettierd"]
-                :go [:goimports :gofmt]
-            }
-            :format_after_save {:lsp_format :fallback}
-        }))
-
-    (let [_ (mini_deps.add {:source "milanglacier/yarepl.nvim"})
-          yr (require :yarepl)]
-        (yr.setup {
-            ; :wincmd ""
-            :metas repl_metas
-        }))
+    (local yr (require :yarepl))
+    (yr.setup {
+        ; :wincmd ""
+        :metas repl_metas
+    })
 )
 
 (local mini_extra (require :mini.extra))

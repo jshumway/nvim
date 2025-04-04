@@ -109,7 +109,7 @@
     :type_definition #(mini_extra.pickers.lsp {:scope :type_definition})
 
     :repl {
-        :make_start_and_attach_for_ft (fn [ft] (.. "<CMD>REPLStart-" ft "!" "<CR>"))
+        :make_start_and_attach_for_ft (fn [ft] (.. "<CMD>REPLStart-" ft "<CR>"))
         :make_attach_for_ft (fn [ft] (.. "<CMD>REPLAttachBufferToREPL-" ft "<CR>"))
 
         :send_visual "<Plug>(REPLSendVisual)"

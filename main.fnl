@@ -216,20 +216,6 @@
 ;; ---------------------------------------------------------------------
 ;; Language modules
 
-;; TODO: okay, I'm running into a problem. There are plugins where I need to put
-;; extra stuff into the setup call, but I call setup at the top of the module
-;; and that happens before the "add-on" files, like the language specific ones.
-;;
-;; I'm also having trouble with the filetype specific stuff, because that feels
-;; trickier to manage.
-;;
-;; I feel like I'm probably going to have to give _my_ modules .setup calls, along
-;; with little helpers that other modules can use to add things to setup lists.
-;; That will also allow these modules to expose helper functions, since I won't
-;; be running the top-level stuff every time.
-;;
-;; It _might_ also open the door to broader config reloading. We'll see.
-
 (when (vim.fn.filereadable :stripe.fnl)
     (now-let [m (require :stripe)]
         ;; TODO: ideally this would only be added to Ruby buffers.

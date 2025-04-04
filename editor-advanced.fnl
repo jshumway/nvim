@@ -88,7 +88,7 @@
     (yr.register_text_objects [{
         :key :c
         :start_pattern "```.+"
-        :end_pattern = "```$'"
+        :end_pattern "```$"
         :ft ["rmd" "quarto" "markdown"]
         :desc "markdown code cells"
     }])

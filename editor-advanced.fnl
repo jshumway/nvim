@@ -110,7 +110,7 @@
 
     :repl {
         :make_start_and_attach_for_ft (fn [ft] (.. "<CMD>REPLStart-" ft "!"))
-        :make_attach_for_ft (fn [fn] (.. "<CMD>REPLAttachBufferToREPL-" ft))
+        :make_attach_for_ft (fn [ft] (.. "<CMD>REPLAttachBufferToREPL-" ft))
 
         :send_visual "<Plug>(REPLSendVisual)"
         :send_line "<Plug>(REPLSendLine)"

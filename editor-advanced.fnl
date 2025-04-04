@@ -84,6 +84,14 @@
         :wincmd "vertical 120 split"
         :metas repl_metas
     })
+
+    (yr.register_text_objects [{
+        :key :c
+        :start_pattern "```.+"
+        :end_pattern = "```$'"
+        :ft ["rmd" "quarto" "markdown"]
+        :desc "markdown code cells"
+    }])
 )
 
 (local mini_extra (require :mini.extra))

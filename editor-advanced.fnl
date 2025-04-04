@@ -81,7 +81,7 @@
     (overwrite_lsp_open_floating_preview)
     (local yr (require :yarepl))
     (yr.setup {
-        ; :wincmd ""
+        :wincmd "vertical 120 split"
         :metas repl_metas
     })
 )

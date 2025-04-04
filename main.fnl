@@ -160,9 +160,11 @@
     ]))
 
 (later-let [m (require :editor-advanced)]
+    ;; Completion pop-up navigation.
     (map :i :<Tab> m.move_down_suggestions {:noremap true :expr true})
     (map :i :<S-Tab> m.move_down_suggestions {:noremap true :expr true})
 
+    ;; LSP
     (m.on_lsp_attach (fn [ctx]
         (map :n :gD m.type_definition {:buffer ctx.buf :desc "Goto type"})
         (map :n :gO m.outline {:buffer ctx.buf :desc "Outline"})
@@ -173,34 +175,23 @@
         (map :n :gri m.implementation {:buffer ctx.buf :desc "Goto implementation"})
         (map :n :grn m.rename {:buffer ctx.buf :desc "Rename symbol"})
         (map :n :grr m.references {:buffer ctx.buf :desc "Goto references"})
-        ; (map :i :<C-s> m.signature_help {:buffer ctx.buf :desc "Signature help"})
         ))
 
-    ; :send_motion #(iron.run_motion :send_motion)
-    ; :send_mark iron.send_mark
-    ; :send_line iron.send_line
-    ; :send_until_cursor iron.send_until_cursor
-    ; :send_file iron.send_file
-    ; :send_paragraph iron.send_paragraph
-    ; :send_code_block #(iron.send_code_block false)
-    ; :send_code_block_and_move #(iron.send_code_block true.)
+        ; :send_visual "<Plug>(REPLSendVisual)"
+        ; :send_line "<Plug>(REPLSendLine)"
+        ; :send_operator "<Plug>(REPLSendOperator)"
+        ; :send_string "<Plug>(REPLExec)"
+        ; :close "<Plug>(REPLClose)"
+        ; :hide "<Plug>(REPLHide)"
+        ; :toggle_focus "<Plug>(REPLHideOrFocus)"
 
-    ; :mark_motion #(iron.run_motion :mark_motion)
-    ; :mark_visual iron.mark_visual
-    ; :remove_mark iron_marks.drop_last
-    ; :clear_hl iron_marks.clear_hl
-
-    (map :n :<Leader>mt m.repl.toggle {:desc "Toggle repl"})
-    (map :n :<Leader>mC m.repl.exit {:desc "Exit repl"})
-    (map :n :<Leader>mR m.repl.restart {:desc "Restart repl"})
-    (map :n :<Leader>m<C-c> m.repl.interrupt {:desc "Send interrupt"})
-    (map :n :<Leader>mq m.repl.send_q {:desc "Send 'q'"})
-    (map :n :<Leader>m<C-l> m.repl.clear {:desc "Clear repl"})
-
+    (map :n :<Leader>mf m.repl.focus {:desc "Toggle repl"})
+    (map :n :<Leader>mC m.repl.close {:desc "Exit repl"})
+    (map :n :<Leader>mM m.repl.send_line {:desc "Send line"})
+    (map :n :<C-m> m.repl.send_operator {:desc "Send operator"})
     (map :v :<Leader>mm m.repl.send_visual {:desc "Send visual"})
 
     (table.insert module_clues [
-        {:mode :n :keys :<Leader>l :desc :+Lsp}
         {:mode :n :keys :<Leader>m :desc :+Mode}
         {:mode :x :keys :<Leader>m :desc :+Mode}
     ]))
@@ -239,9 +230,6 @@
 
 (later-let [m (require :lang.ruby)] nil)
 (later-let [m (require :lang.fennel)] nil)
-
-(later-let [iron_config (require :iron.config)]
-    (tset iron_config.repl_definition :sh {:command [:zsh]}))
 
 ;; ---------------------------------------------------------------------
 ;; Clues

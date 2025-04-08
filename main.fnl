@@ -82,9 +82,12 @@
 (local module_clues [])
 
 (now-let [m (require :editor)]
-    ; (map :n :<Leader>cc "\"+yy" {:noremap true :desc "Copy line"})
-    (map :n :<Leader>cc "\"+y" {:noremap true :desc "Copy motion"})
-    (map :v :<Leader>cc "\"+y" {:noremap true :desc "Copy selection"})
+    (map :n :<Leader>cc "\"+y" {:noremap true :desc "Motion"})
+    (map :v :<Leader>cc "\"+y" {:noremap true :desc "Selection"})
+    (map :n :<Leader>cp m.copy_relative_path {:noremap true :desc "Relative path"})
+    (map :n :<Leader>cn m.copy_path_and_line_number {:noremap true :desc "Path & line"})
+    (map :n :<Leader>cP m.copy_absolute_path {:noremap true :desc "Absolute path"})
+    (map :n :<Leader>cf m.copy_filename {:noremap true :desc "Filename"})
 
     (map :n :<C-u> m.half_page_up_center {:noremap true})
     (map :n :<C-d> m.half_page_down_center {:noremap true})

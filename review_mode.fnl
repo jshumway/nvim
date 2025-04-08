@@ -1,6 +1,8 @@
 
 ;; ----------------------------------------------------------------------------------
 
+(local mini_diff (require :mini.diff))
+
 (local H {
     :is_enabled false
     :base_ref nil

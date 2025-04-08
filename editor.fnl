@@ -193,11 +193,26 @@
     }
 })
 
+(macro make_path_copier [expr]
+    `(fn []
+        (let [r# ,expr]
+            (vim.fn.setreg "+" r#)
+            (print r#))))
+
 {
     :half_page_up_center "<C-u>zz"
     :half_page_down_center "<C-d>zz"
 
     :search_next_centered :nzz
     :search_prev_centered :Nzz
+
+    :copy_absolute_path (make_path_copier (vim.fn.expand "%:p"))
+    :copy_relative_path (make_path_copier (vim.fn.expand "%:f"))
+    :copy_filename (make_path_copier (vim.fn.expand "%:t"))
+
+    :copy_path_and_line_number
+    (make_path_copier
+        (let [[line] (vim.api.nvim_win_get_cursor 0)]
+            (.. (vim.fn.expand "%:f") ":" line)))
 }
 

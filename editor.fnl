@@ -70,11 +70,11 @@
     (m.setup {:delay 50})
     (vim.api.nvim_create_autocmd :FileType {
         :group augroup_module
-        :callback
-        #(let [ft (. vim.bo $.buf :filetype)]
-            ;; Enable for certain file types.
-            (tset vim.b $.buf :minicursorword_disable
-                (and (not= ft :fennel) (not= ft :ruby))))}))
+        :callback (fn [ctx]
+            ;; Disable by default. Specific filetypes can enable in
+            ;; lang/<ft>.fnl.
+            (set vim.b.minicursorword_disable true)
+        )}))
 
 (let [m (require :mini.indentscope)]
     (m.setup {
@@ -83,17 +83,13 @@
             :animation (m.gen_animation.none)
         }
     })
-    ;; TODO: make this a generic thing to add to different plugin loads
     (vim.api.nvim_create_autocmd :FileType {
         :group augroup_module
-        :callback
-        #(let [ft (. vim.bo $.buf :filetype)]
-            ;; Enable for certain file types.
-            (tset vim.b $.buf :miniindentscope_disable
-                (and (not= ft :fennel) (not= ft :ruby)))
-            (when (= ft :fennel)
-                (tset vim.b $.buf :miniindentscope_config {:options {:border :top}})))
-        }))
+        :callback (fn [ctx]
+            ;; Disable by default. Specific filetypes can enable in
+            ;; lang/<ft>.fnl.
+            (set vim.b.miniindentscope_disable true)
+        )}))
 
 (let [m (require :mini.hipatterns)]
     (m.setup {

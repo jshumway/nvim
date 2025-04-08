@@ -5,13 +5,13 @@
 
 ;; NOTE: this only supports reloading this specific file, not any of the
 ;; files that this one `requires`.
-(vim.api.nvim_create_autocmd :BufWritePost {
-    :group augroup_user
-    :pattern "main.fnl"
-    :callback #(do
-        (fennel.dofile (.. MYVIMRC_ROOT "main.fnl"))
-        (vim.notify "Config reloaded"))
-})
+; (vim.api.nvim_create_autocmd :BufWritePost {
+;     :group augroup_user
+;     :pattern "main.fnl"
+;     :callback #(do
+;         (fennel.dofile (.. MYVIMRC_ROOT "main.fnl"))
+;         (vim.notify "Config reloaded"))
+; })
 
 ;; ---------------------------------------------------------------------
 ;; Bootstrap mini_deps
@@ -218,14 +218,15 @@
 
 ;; ---------------------------------------------------------------------
 ;; Language modules
+(now-let [m (require :lang.ruby)] nil)
+(now-let [m (require :lang.fennel)] nil)
 
+;; Load work specific settings last so they can overwrite the above
+;; language modules as needed.
 (when (vim.fn.filereadable :stripe.fnl)
     (now-let [m (require :stripe)]
         ;; TODO: ideally this would only be added to Ruby buffers.
         (map :n :<Leader>cS m.copy_symbol_name {:noremap true :desc "Copy symbol name"})))
-
-(now-let [m (require :lang.ruby)] nil)
-(now-let [m (require :lang.fennel)] nil)
 
 ;; ---------------------------------------------------------------------
 ;; Final setup

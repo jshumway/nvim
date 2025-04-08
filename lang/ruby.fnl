@@ -1,3 +1,5 @@
+(local augroup_module (vim.api.nvim_create_augroup :user_lang_ruby {:clear true}))
+
 (local folds_query "
 [
   (method)

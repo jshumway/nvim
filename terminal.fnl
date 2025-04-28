@@ -14,8 +14,16 @@
       m (require :toggleterm)]
     (m.setup))
 
+(let [_ (mini_deps.add {:source :xb-bx/editable-term.nvim})
+      m (require :editable-term)]
+    (m.setup {
+        :promts {
+            "$ " {}
+        }
+    }))
+
 {
-    :on_term_enter 
+    :on_term_enter
     #(vim.api.nvim_create_autocmd :TermEnter
         {:pattern "term://*toggleterm#*" :group augroup_module :callback $})
 

@@ -34,7 +34,7 @@
              :hooks {:post_checkout #(vim.cmd :TSUpdate)}})
       m (require :nvim-treesitter.configs)]
     (m.setup {
-        :ensure_installed [:lua :vimdoc :ruby :fennel]
+        :ensure_installed [:lua :vimdoc :ruby :fennel :sql]
         :highlight {:enable true}
     }))
 
@@ -75,24 +75,26 @@
         :format_after_save {:lsp_format :fallback}
     }))
 
+;; TODO: for some reason this is ruining my ability to select (press enter on) entries
+;; in the quickfix list. Disabling it for now.
 (mini_deps.add {:source "milanglacier/yarepl.nvim"})
 
 (fn setup []
     (overwrite_lsp_open_floating_preview)
-    (local yr (require :yarepl))
-    (yr.setup {
-        :wincmd "vertical 120 split"
-        :metas repl_metas
-    })
-
-    (local yr_ext_cc (require :yarepl.extensions.code_cell))
-    (yr_ext_cc.register_text_objects [{
-        :key :c
-        :start_pattern "```.+"
-        :end_pattern "```$"
-        :ft ["rmd" "quarto" "markdown"]
-        :desc "markdown code cells"
-    }])
+    ; (local yr (require :yarepl))
+    ; (yr.setup {
+    ;     :wincmd "vertical 120 split"
+    ;     :metas repl_metas
+    ; })
+    ;
+    ; (local yr_ext_cc (require :yarepl.extensions.code_cell))
+    ; (yr_ext_cc.register_text_objects [{
+    ;     :key :c
+    ;     :start_pattern "```.+"
+    ;     :end_pattern "```$"
+    ;     :ft ["rmd" "quarto" "markdown"]
+    ;     :desc "markdown code cells"
+    ; }])
 )
 
 (local mini_extra (require :mini.extra))
@@ -117,17 +119,17 @@
     :signature_help vim.lsp.buf.signature_help
     :type_definition #(mini_extra.pickers.lsp {:scope :type_definition})
 
-    :repl {
-        :make_start_and_attach_for_ft (fn [ft] (.. "<CMD>REPLStart! " ft "<CR>"))
-        :make_attach_for_ft (fn [ft] (.. "<CMD>REPLAttachBufferToREPL " ft "<CR>"))
-
-        :send_visual "<Plug>(REPLSendVisual)"
-        :send_line "<Plug>(REPLSendLine)"
-        :send_operator "<Plug>(REPLSendOperator)"
-        :send_string "<Plug>(REPLExec)"
-        :close "<Plug>(REPLClose)"
-        :focus "<Plug>(REPLFocus)"
-        :hide "<Plug>(REPLHide)"
-        :toggle_focus "<Plug>(REPLHideOrFocus)"
-    }
+    ; :repl {
+    ;     :make_start_and_attach_for_ft (fn [ft] (.. "<CMD>REPLStart! " ft "<CR>"))
+    ;     :make_attach_for_ft (fn [ft] (.. "<CMD>REPLAttachBufferToREPL " ft "<CR>"))
+    ;
+    ;     :send_visual "<Plug>(REPLSendVisual)"
+    ;     :send_line "<Plug>(REPLSendLine)"
+    ;     :send_operator "<Plug>(REPLSendOperator)"
+    ;     :send_string "<Plug>(REPLExec)"
+    ;     :close "<Plug>(REPLClose)"
+    ;     :focus "<Plug>(REPLFocus)"
+    ;     :hide "<Plug>(REPLHide)"
+    ;     :toggle_focus "<Plug>(REPLHideOrFocus)"
+    ; }
 }

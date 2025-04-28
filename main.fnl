@@ -1,3 +1,7 @@
+;; TODO: an indicator in the status line that I have a buffer, besides
+;; the current one, that is backed by a file, and isn't saved... and it
+;; is like yellow.
+
 ;; ---------------------------------------------------------------------
 ;; Config reloading
 
@@ -92,8 +96,8 @@
     (map :n :<C-u> m.half_page_up_center {:noremap true})
     (map :n :<C-d> m.half_page_down_center {:noremap true})
 
-    (map :n :n m.search_next_centered {:noremap true})
-    (map :n :N m.search_prev_centered {:noremap true})
+    (map :n :n m.search_next_centered_nojumplist {:noremap true})
+    (map :n :N m.search_prev_centered_nojumplist {:noremap true})
 
     (table.insert module_clues [
         {:mode :x :keys :<Leader>c :desc :+Copy}
@@ -180,12 +184,12 @@
         (map :n :grr m.references {:buffer ctx.buf :desc "Goto references"})
         ))
 
-    ;; Repl
-    (map :n :<Leader>mf m.repl.focus {:desc "Toggle repl"})
-    (map :n :<Leader>mC m.repl.close {:desc "Exit repl"})
-    (map :n :<Leader>mM m.repl.send_line {:desc "Send line"})
-    (map :n :<C-m> m.repl.send_operator {:desc "Send operator"})
-    (map :v :<Leader>mm m.repl.send_visual {:desc "Send visual"})
+    ; ;; Repl
+    ; (map :n :<Leader>mf m.repl.focus {:desc "Toggle repl"})
+    ; (map :n :<Leader>mC m.repl.close {:desc "Exit repl"})
+    ; (map :n :<Leader>mM m.repl.send_line {:desc "Send line"})
+    ; (map :n :<C-m> m.repl.send_operator {:desc "Send operator"})
+    ; (map :v :<Leader>mm m.repl.send_visual {:desc "Send visual"})
 
     (table.insert module_clues [
         {:mode :n :keys :<Leader>m :desc :+Mode}
@@ -212,6 +216,9 @@
     (table.insert module_clues [
         {:mode :n :keys :<Leader>d :desc :+Diff}
     ]))
+
+(later-let [m (require :ai)]
+    nil)
 
 ;; TODO: disable because pay-server is so big.
 ;; (later-let [m (require :git)] nil)

@@ -173,9 +173,6 @@
     :half_page_up_center "<C-u>zz"
     :half_page_down_center "<C-d>zz"
 
-    :search_next_centered :nzz
-    :search_prev_centered :Nzz
-
     :copy_absolute_path (make_path_copier (vim.fn.expand "%:p"))
     :copy_relative_path (make_path_copier (vim.fn.expand "%:f"))
     :copy_filename (make_path_copier (vim.fn.expand "%:t"))
@@ -184,5 +181,8 @@
     (make_path_copier
         (let [[line] (vim.api.nvim_win_get_cursor 0)]
             (.. (vim.fn.expand "%:f") ":" line)))
+
+    :search_next_centered_nojumplist ":keepjumps normal! nzz<CR>"
+    :search_prev_centered_nojumplist ":keepjumps normal! Nzz<CR>"
 }
 

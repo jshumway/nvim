@@ -117,7 +117,7 @@
     :references #(mini_extra.pickers.lsp {:scope :references})
     :rename vim.lsp.buf.rename
     :signature_help vim.lsp.buf.signature_help
-    :type_definition #(mini_extra.pickers.lsp {:scope :type_definition})
+    :type_definition vim.lsp.buf.type_definition ;; #(mini_extra.pickers.lsp {:scope :type_definition})
 
     ; :repl {
     ;     :make_start_and_attach_for_ft (fn [ft] (.. "<CMD>REPLStart! " ft "<CR>"))

@@ -199,18 +199,19 @@
         {:mode :x :keys :<Leader>m :desc :+Mode}
     ]))
 
-(later-let [m (require :terminal)]
-    (map :n :<C-t> m.normal_toggle_terminal {:noremap true :silent true})
-    (map :i :<C-t> m.insert_toggle_terminal {:noremap true :silent true})
+(later-let [m (require :terminal)
+            main_terminal (m.create_terminal)]
+    (map :n :<C-t> #(m.focus_or_toggle main_terminal) {:silent true})
+    (map :i :<C-t> #(m.focus_or_toggle main_terminal) {:silent true})
+    (map :t :<C-t> #(m.focus_or_toggle main_terminal) {:silent true})
 
-    (map :t :<C-t> m.normal_toggle_terminal {:noremap true :silent true})
     (map :t :<ESC> m.escape_from_terminal_insert_mode {:noremap true :silent true})
     ;; NOTE: <C-k><C-k> prevents conflict with the readline command <C-k>
     ;; used to kill the rest of the line.
     (map :t :<C-k><C-k> m.terminal_insert_focus_window_up {:noremap true :silent true})
 
-    (m.on_term_enter (fn [ctx]
-        (map :t :<C-t> m.normal_toggle_terminal {:buffer ctx.buf :noremap true :silent true})))
+    ; (m.on_term_enter (fn [ctx]
+    ;     (map :t :<C-t> #(m.focus_or_toggle main_terminal) {:buffer ctx.buf :noremap true :silent true})))
     )
 
 (later-let [m (require :diff)]
@@ -220,8 +221,10 @@
         {:mode :n :keys :<Leader>d :desc :+Diff}
     ]))
 
-(later-let [m (require :ai)]
-    nil)
+(later-let [m (require :ai)
+            terminal (require :terminal)
+            goose_terminal (m.create_goose_terminal)]
+    (map :n :<Leader>gg #(terminal.focus_or_toggle goose_terminal) {:noremap true :silent true}))
 
 ;; TODO: disable because pay-server is so big.
 ;; (later-let [m (require :git)] nil)

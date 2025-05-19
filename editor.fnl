@@ -63,6 +63,9 @@
 ; (let [m (require :mini.pairs)]
 ;     (m.setup {}))
 
+(vim.opt_global.formatoptions:append :n)
+(set vim.go.formatlistpat "^\\s*\\d\\+[\\]:.)}\\t ]\\s*\\|^\\s*[-]\\s\\+")
+
 ;; --------------------------------------------------------------------
 ;; Appearance
 

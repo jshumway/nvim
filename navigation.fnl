@@ -67,6 +67,10 @@
 (mini_deps.add {:source "lewis6991/fileline.nvim"})
 (vim.cmd "packadd fileline.nvim")
 
+; (let [_ (mini_deps.add {:source :chentoast/marks.nvim})
+;       m (require :marks)]
+;     (m.setup {}))
+
 {
     :pick_recent #(mini_extra.pickers.visit_paths {:recency_weight 1})
     :pick_frequent #(mini_extra.pickers.visit_paths {:recency_weight 0})

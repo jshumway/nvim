@@ -1,3 +1,5 @@
+;; TODO: figure out how I can fold just one branch of a conditional at a time
+
 (local augroup_module (vim.api.nvim_create_augroup :user_lang_ruby {:clear true}))
 
 (local folds_query "

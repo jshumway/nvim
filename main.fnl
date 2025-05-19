@@ -122,8 +122,10 @@
     (map :n :<Leader>ww m.last_window {:noremap true :desc "Last window"})
     (map :n :<Leader>wc m.close_window {:noremap true :desc "Close window"})
     (map :n :<Leader>wv m.vertical_split {:noremap true :desc "Vertical split"})
-    (map :n :<Leader>wv m.horizontal_split {:noremap true :desc "Horizontal split"})
-    (map :n :<Leader>wR m.rebalance_splits {:noremap true :desc "Rebalance splits"})
+    (map :n :<Leader>wh m.horizontal_split {:noremap true :desc "Horizontal split"})
+
+    (map :n :<Leader>wx m.exchange_windows {:noremap true :desc "Exchange splits"})
+    (map :n :<Leader>w= m.rebalance_splits {:noremap true :desc "Rebalance splits"})
 
     (map :n :<Leader>wh m.focus_window_left {:noremap true :desc "Focus left"})
     (map :n :<Leader>wj m.focus_window_down {:noremap true :desc "Focus down"})
@@ -148,7 +150,8 @@
         {:mode :n :keys :<Leader>wh :postkeys :<Leader>w}
     ]))
 
-(now-let [m (require :theme)] nil)
+(now-let [m (require :theme)]
+    (m.no_clown_fiesta))
 
 (now-let [m (require :starter)] nil)
 

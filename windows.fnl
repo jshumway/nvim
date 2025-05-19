@@ -5,7 +5,9 @@
     :vertical_split ":vsplit<CR>"
     :horizontal_split ":split<CR>"
     :close_window :<C-w>c
+
     :rebalance_splits :<C-w>=
+    :exchange_windows :<C-w>x
 
     :focus_window_left :<C-w>h
     :focus_window_down :<C-w>j

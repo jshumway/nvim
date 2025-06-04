@@ -4,7 +4,8 @@
     (Terminal:new {
         :display_name :goose
         :cmd "pay goose"
-        :direction :vertical
+        ; :direction :vertical
+        :direction :float
         :count 0
     }))
 

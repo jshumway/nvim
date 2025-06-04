@@ -21,7 +21,8 @@
 
 (fn create_terminal [?count]
     (Terminal:new {
-        :direction :horizontal
+        :direction :float
+        ; :direction :horizontal
         :count (or ?count 1)
     }))
 

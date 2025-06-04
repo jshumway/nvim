@@ -113,7 +113,7 @@
     :pick_frequent #(mini_extra.pickers.visit_paths {:recency_weight 0})
 
     :pick_files mini_pick.builtin.files
-    :pick_files_at_path (mini_pick.registry.files {:cwd (buffer_basename)})
+    :pick_files_at_path #(mini_pick.registry.files {:cwd (buffer_basename)})
     :pick_grep_live mini_pick.builtin.grep_live
     :pick_grep_live_at_path #(mini_pick.registry.grep_live {:cwd (buffer_basename)})
     :pick_grep mini_pick.builtin.grep

@@ -92,8 +92,8 @@
     (map :n :<C-u> m.half_page_up_center {:noremap true})
     (map :n :<C-d> m.half_page_down_center {:noremap true})
 
-    (map :n :n m.search_next_centered_nojumplist {:noremap true})
-    (map :n :N m.search_prev_centered_nojumplist {:noremap true})
+    (map :n :n m.search_next_centered_nojumplist {:silent true :noremap true})
+    (map :n :N m.search_prev_centered_nojumplist {:silent true :noremap true})
 
     (map :x :I m.shift_i_in_visual_mode {:expr true :silent true :noremap true})
 

@@ -22,6 +22,8 @@
 
 (set vim.o.spelloptions :camel)
 
+(set vim.o.cmdheight 0)
+
 ;; Shift indentation without losing selection.
 (vim.keymap.set :x :< :<gv {:noremap true})
 (vim.keymap.set :x :> :>gv {:noremap true})

@@ -10,7 +10,7 @@
     filetype)
 
 (fn active []
-    (local (mode mode_hl) (mini_statusline.section_mode {:trunc_width 120}))
+    (local (mode mode_hl) (mini_statusline.section_mode {:trunc_width 8192}))
     (local git (mini_statusline.section_git {:trunc_width 40}))
     (local diff (mini_statusline.section_diff {:trunc_width 75}))
     (local diagnostics (mini_statusline.section_diagnostics {:trunc_width 75}))

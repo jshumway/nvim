@@ -76,10 +76,6 @@
 (now-let [m (require :mini.pick)]
     (m.setup))
 
-;; TODO: clean up the status line; don't need total columns, encoding, file size
-(now-let [m (require :mini.statusline)]
-    (m.setup))
-
 ;; ---------------------------------------------------------------------
 ;; Modules
 
@@ -105,6 +101,15 @@
         {:mode :x :keys :<Leader>c :desc :+Copy}
         {:mode :n :keys :<Leader>c :desc :+Copy}
     ]))
+
+(now-let [m (require :mini.statusline)
+          mm (require :statusline)]
+    (m.setup {
+        :content {
+            :active mm.active
+            :inactive mm.inactive
+        }
+    }))
 
 (now-let [m (require :buffers)]
     (map :n :<Leader><Leader> m.last_buffer {:noremap true :desc "Last buffer"})

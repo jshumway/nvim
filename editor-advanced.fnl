@@ -75,9 +75,22 @@
         :format_after_save {:lsp_format :fallback}
     }))
 
+(let [_ (mini_deps.add {:source :shortcuts/no-neck-pain.nvim})
+      m (require :no-neck-pain)]
+    (m.setup {
+        :width 160
+        :autocmds {
+            :enableOnVimEnter true
+            :enableOnTabEnter true
+        }
+        :buffers {
+            :setNames true
+        }
+    }))
+
 ;; TODO: for some reason this is ruining my ability to select (press enter on) entries
 ;; in the quickfix list. Disabling it for now.
-(mini_deps.add {:source "milanglacier/yarepl.nvim"})
+;; (mini_deps.add {:source "milanglacier/yarepl.nvim"})
 
 (fn setup []
     (overwrite_lsp_open_floating_preview)

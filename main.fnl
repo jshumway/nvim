@@ -99,6 +99,8 @@
     (map :n :n m.search_next_centered_nojumplist {:noremap true})
     (map :n :N m.search_prev_centered_nojumplist {:noremap true})
 
+    (map :x :I m.shift_i_in_visual_mode {:expr true :silent true :noremap true})
+
     (table.insert module_clues [
         {:mode :x :keys :<Leader>c :desc :+Copy}
         {:mode :n :keys :<Leader>c :desc :+Copy}

@@ -66,6 +66,8 @@
 (vim.opt_global.formatoptions:append :n)
 (set vim.go.formatlistpat "^\\s*\\d\\+[\\]:.)}\\t ]\\s*\\|^\\s*[-]\\s\\+")
 
+(fn shift_i_in_visual_mode [] (or (and (= "" (. (vim.api.nvim_get_mode) :mode)) :I) :<C-v>I))
+
 ;; --------------------------------------------------------------------
 ;; Appearance
 
@@ -172,6 +174,11 @@
             (vim.fn.setreg "+" r#)
             (print r#))))
 
+;; --------------------------------------------------------------------
+;; Diagnostics
+
+(vim.diagnostic.config {:virtual_text false :virtual_lines {}})
+
 {
     :half_page_up_center "<C-u>zz"
     :half_page_down_center "<C-d>zz"
@@ -187,5 +194,7 @@
 
     :search_next_centered_nojumplist ":keepjumps normal! nzz<CR>"
     :search_prev_centered_nojumplist ":keepjumps normal! Nzz<CR>"
+
+    : shift_i_in_visual_mode
 }
 

@@ -33,6 +33,8 @@
 ;; - use mini.visits to mark a file w/in the current namespace
 ;; - open a picker with files marked in the current namespace
 
+(local augroup_module (vim.api.nvim_create_augroup :user_navigation {:clear true}))
+
 (local mini_pick (require :mini.pick))
 (local mini_extra (require :mini.extra))
 
@@ -94,6 +96,11 @@
 (local arglist_next "<CMD>exe v:count1 .. 'n'<BAR>args<CR><ESC>")
 
 (fn arglist_pick [] (mini_pick.start {:source {:items vim.fn.argv :name :Arglist}}))
+
+(vim.api.nvim_create_autocmd :TabNewEntered {
+    :group augroup_module
+    :command "argl|%argd"
+})
 
 ;; --------------------------------------------------------------------
 ;; Handle line numbers in file names

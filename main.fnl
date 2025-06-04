@@ -48,7 +48,8 @@
     (m.setup)
     (set vim.o.termguicolors true)
     (set vim.o.confirm true)
-    (map :n :<leader>fE #(vim.cmd.edit (.. MYVIMRC_ROOT "main.fnl")) {:desc "Edit .nvimrc"}))
+    ; (map :n :<leader>fE #(vim.cmd.edit (.. MYVIMRC_ROOT "main.fnl")) {:desc "Edit .nvimrc"})
+    )
 
 (when (= vim.g.os :windows)
     (now-let [m (require :os-windows)]
@@ -163,13 +164,17 @@
 (now-let [m (require :starter)] nil)
 
 (later-let [m (require :navigation)]
+    (map :n :<Leader>r m.resume_last_picker {:desc "Last picker"})
+
     (map :n :<Leader>fr m.pick_recent {:noremap true :desc "Recent files"})
     (map :n :<Leader>fe m.explore_files_at_current_path {:desc "File explorer"})
-    (map :n :<Leader>ff m.pick_files {:desc "Find files"})
-    (map :n :<Leader>r m.resume_last_picker {:desc "Last picker"})
-    (map :n :<Leader>si m.pick_grep_live {:desc "Interactive grep"})
-    (map :n :<Leader>sg m.pick_grep {:desc "Grep"})
-    (map :n :<Leader>sh m.pick_help {:desc "Help"})
+    (map :n :<Leader>ff m.pick_files_at_path {:desc "Find files"})
+    (map :n :<Leader>fF m.pick_files {:desc "Find files (global)"})
+    (map :n :<Leader>fi m.pick_grep_live_at_path {:desc "Interactive grep"})
+    (map :n :<Leader>fI m.pick_grep_live {:desc "Interactive grep (global)"})
+    (map :n :<Leader>fg m.pick_grep_at_path {:desc "Grep"})
+    (map :n :<Leader>fG m.pick_grep {:desc "Grep (global)"})
+    (map :n :<Leader>fh m.pick_help {:desc "Help"})
 
     (map :n :<Leader>at m.arglist_add {:desc "Track"})
     (map :n :<Leader>au m.arglist_delete {:desc "Untrack"})
@@ -179,8 +184,8 @@
     (map :n :<Leader>aN m.arglist_prev {:desc "Prev"})
 
     (table.insert module_clues [
-        {:mode :n :keys :<Leader>f :desc :+Files}
-        {:mode :n :keys :<Leader>s :desc :+Search}
+        {:mode :n :keys :<Leader>f :desc :+Find}
+        ; {:mode :n :keys :<Leader>s :desc :+Search}
         {:mode :n :keys :<Leader>a :desc :+Arglist}
 
         {:mode :n :keys :<Leader>an :postkeys :<Leader>a}
@@ -212,10 +217,11 @@
     ; (map :n :<C-m> m.repl.send_operator {:desc "Send operator"})
     ; (map :v :<Leader>mm m.repl.send_visual {:desc "Send visual"})
 
-    (table.insert module_clues [
-        {:mode :n :keys :<Leader>m :desc :+Mode}
-        {:mode :x :keys :<Leader>m :desc :+Mode}
-    ]))
+    ; (table.insert module_clues [
+    ;     {:mode :n :keys :<Leader>m :desc :+Mode}
+    ;     {:mode :x :keys :<Leader>m :desc :+Mode}
+    ; ])
+    )
 
 (later-let [m (require :terminal)
             main_terminal (m.create_terminal)]
@@ -226,10 +232,10 @@
     (map :t :<ESC> m.escape_from_terminal_insert_mode {:noremap true :silent true})
     ;; NOTE: <C-k><C-k> prevents conflict with the readline command <C-k>
     ;; used to kill the rest of the line.
-    (map :t :<C-k><C-k> m.terminal_insert_focus_window_up {:noremap true :silent true})
+    ; (map :t :<C-k><C-k> m.terminal_insert_focus_window_up {:noremap true :silent true})
 
     (m.on_term_enter (fn [ctx]
-        (map :n :<ESC><ESC> #(m.focus_or_toggle main_terminal) {:buffer ctx.buf :silent true}))))
+        (map :n :<ESC> #(m.focus_or_toggle main_terminal) {:buffer ctx.buf :silent true}))))
 
 (later-let [m (require :diff)]
     (map :n :<Leader>dS m.toggle_inline_changes {:noremap true :silent true :desc "Show diff inline"})
@@ -244,7 +250,7 @@
     (map :n :<Leader>gg #(terminal.focus_or_toggle goose_terminal) {:noremap true :silent true :desc "Goose"})
 
     (m.on_goose_term_enter (fn [ctx]
-        (map :n :<ESC><ESC> #(terminal.focus_or_toggle goose_terminal) {:buffer ctx.buf :silent true})))
+        (map :n :<ESC> #(terminal.focus_or_toggle goose_terminal) {:buffer ctx.buf :silent true})))
 
     (table.insert module_clues [
         {:mode :n :keys :<Leader>g :desc :+Goose}

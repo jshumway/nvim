@@ -44,6 +44,21 @@
     }
 })
 
+(tset mini_pick.registry :files (fn [local_opts]
+    (local opts {:source {:cwd local_opts.cwd}})
+    (tset local_opts :cwd nil)
+    (mini_pick.builtin.files local_opts opts)))
+
+(tset mini_pick.registry :grep_live (fn [local_opts]
+    (local opts {:source {:cwd local_opts.cwd}})
+    (tset local_opts :cwd nil)
+    (mini_pick.builtin.grep_live local_opts opts)))
+
+(tset mini_pick.registry :grep (fn [local_opts]
+    (local opts {:source {:cwd local_opts.cwd}})
+    (tset local_opts :cwd nil)
+    (mini_pick.builtin.grep local_opts opts)))
+
 ;; NOTE: Required for mini_extra.pickers.visit_paths to function.
 (local mini_visits (require :mini.visits))
 (mini_visits.setup)
@@ -51,8 +66,11 @@
 (local mini_fuzzy (require :mini.fuzzy))
 (mini_fuzzy.setup)
 
+(fn buffer_basename []
+    (string.gsub (vim.fn.expand "%:p") PATH_PATTERN "%1"))
+
 (fn explore_files_at_current_path []
-    (mini_files.open (string.gsub (vim.fn.expand "%:p") PATH_PATTERN "%1")))
+    (mini_files.open (buffer_basename)))
 
 (local mini_deps (require :mini.deps))
 
@@ -84,11 +102,16 @@
 (vim.cmd "packadd fileline.nvim")
 
 {
-    :pick_recent #(mini_extra.pickers.visit_paths {:recency_weight 1})
+    :pick_recent #(mini_extra.pickers.visit_paths {:recency_weight 1 :preserve_order true})
     :pick_frequent #(mini_extra.pickers.visit_paths {:recency_weight 0})
+
     :pick_files mini_pick.builtin.files
+    :pick_files_at_path (mini_pick.registry.files {:cwd (buffer_basename)})
     :pick_grep_live mini_pick.builtin.grep_live
+    :pick_grep_live_at_path #(mini_pick.registry.grep_live {:cwd (buffer_basename)})
     :pick_grep mini_pick.builtin.grep
+    :pick_grep_at_path #(mini_pick.builtin.grep {:cwd (buffer_basename)})
+
     : explore_files_at_current_path
 
     ;; unclear if these should actually be defined here

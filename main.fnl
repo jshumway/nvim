@@ -171,9 +171,20 @@
     (map :n :<Leader>sg m.pick_grep {:desc "Grep"})
     (map :n :<Leader>sh m.pick_help {:desc "Help"})
 
+    (map :n :<Leader>at m.arglist_add {:desc "Track"})
+    (map :n :<Leader>au m.arglist_delete {:desc "Untrack"})
+    (map :n :<Leader>ap m.arglist_pick {:desc "Pick"})
+    (map :n :<Leader>ac m.arglist_clear {:desc "Clear"})
+    (map :n :<Leader>an m.arglist_next {:desc "Next"})
+    (map :n :<Leader>aN m.arglist_prev {:desc "Prev"})
+
     (table.insert module_clues [
         {:mode :n :keys :<Leader>f :desc :+Files}
         {:mode :n :keys :<Leader>s :desc :+Search}
+        {:mode :n :keys :<Leader>a :desc :+Arglist}
+
+        {:mode :n :keys :<Leader>an :postkeys :<Leader>a}
+        {:mode :n :keys :<Leader>aN :postkeys :<Leader>a}
     ]))
 
 (now-let [m (require :editor-advanced)]
@@ -217,9 +228,8 @@
     ;; used to kill the rest of the line.
     (map :t :<C-k><C-k> m.terminal_insert_focus_window_up {:noremap true :silent true})
 
-    ; (m.on_term_enter (fn [ctx]
-    ;     (map :t :<C-t> #(m.focus_or_toggle main_terminal) {:buffer ctx.buf :noremap true :silent true})))
-    )
+    (m.on_term_enter (fn [ctx]
+        (map :n :<ESC><ESC> #(m.focus_or_toggle main_terminal) {:buffer ctx.buf :silent true}))))
 
 (later-let [m (require :diff)]
     (map :n :<Leader>dS m.toggle_inline_changes {:noremap true :silent true :desc "Show diff inline"})
@@ -231,7 +241,14 @@
 (later-let [m (require :ai)
             terminal (require :terminal)
             goose_terminal (m.create_goose_terminal)]
-    (map :n :<Leader>gg #(terminal.focus_or_toggle goose_terminal) {:noremap true :silent true}))
+    (map :n :<Leader>gg #(terminal.focus_or_toggle goose_terminal) {:noremap true :silent true :desc "Goose"})
+
+    (m.on_goose_term_enter (fn [ctx]
+        (map :n :<ESC><ESC> #(terminal.focus_or_toggle goose_terminal) {:buffer ctx.buf :silent true})))
+
+    (table.insert module_clues [
+        {:mode :n :keys :<Leader>g :desc :+Goose}
+    ]))
 
 ;; TODO: disable because pay-server is so big.
 ;; (later-let [m (require :git)] nil)

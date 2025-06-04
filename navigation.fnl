@@ -61,15 +61,27 @@
     (m.setup))
 
 ;; TODO: quickfix / location list nav?
-;; TODO: arglist nav + management
 ;; TODO: marks?
+
+;; --------------------------------------------------------------------
+;; Arglist
+
+(local arglist_add "<CMD>$arge %<BAR>argded<BAR>args<CR>")
+
+(local arglist_delete "<CMD>argd %<BAR>args<CR>")
+(local arglist_clear "<CMD>%argd<CR><C-L>")
+
+;; TODO: cycle around list
+(local arglist_prev "<CMD>exe v:count1 .. 'N'<BAR>args<CR><ESC>")
+(local arglist_next "<CMD>exe v:count1 .. 'n'<BAR>args<CR><ESC>")
+
+(fn arglist_pick [] (mini_pick.start {:source {:items vim.fn.argv :name :Arglist}}))
+
+;; --------------------------------------------------------------------
+;; Handle line numbers in file names
 
 (mini_deps.add {:source "lewis6991/fileline.nvim"})
 (vim.cmd "packadd fileline.nvim")
-
-; (let [_ (mini_deps.add {:source :chentoast/marks.nvim})
-;       m (require :marks)]
-;     (m.setup {}))
 
 {
     :pick_recent #(mini_extra.pickers.visit_paths {:recency_weight 1})
@@ -82,5 +94,12 @@
     ;; unclear if these should actually be defined here
     :resume_last_picker mini_pick.builtin.resume
     :pick_help mini_pick.builtin.help
+
+    : arglist_add
+    : arglist_clear
+    : arglist_delete
+    : arglist_next
+    : arglist_prev
+    : arglist_pick
 }
 

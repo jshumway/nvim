@@ -5,33 +5,15 @@
 ;; files to come back to later, and other navigation tools.
 
 ;; TODO:
-;; - fix: live (and non-live) grep across the codebase (mini.fuzzy)
-;; - need a way for (live)grep to be started with the current directory as the
-;;   limiting path, as part of the search string so it is editable
-;;
-;; - mini.files binding for opening a file and closing the picker
-;;      - honestly not sure what this means... like a single key way to do it?
-;; - MiniPick.files key to open on right side of vsplit
-;;
 ;; - MiniExtra.pickers.diagnostic
-;; - setup brackets to iterate through stuff like diagnostics, fixlist, w/e
+;; - setup brackets to iterate through stuff like diagnostics, fixlist, w/e.
+;;   I actually think this is offered through mini.brackets or something...
+;;   I would just want to set up mini.clue to make the forward/backward
+;;   repeatable
 
-;; TODO: mini.pick + fixlist integration
-;; - swap out quicklists (to files), saving the current one
-;; - delete the current quicklist (and its file)
-;; - send everything in a picker to the quicklist
-;; - hotkeys to navigate the quicklist - ctrl-n/p
-;; - this is probably its own little extension to manage quicklists in this
-;;   way, and then could be integrated into any picker
-;; - maybe I could call it picklist...
-
-;; TODO: file marking system
-;; - set a global "mark namespace" key
-;;      - can be set automatically when git branch changes
-;;      - or can be set manually (like a project name)
-;;      - displays in status line
-;; - use mini.visits to mark a file w/in the current namespace
-;; - open a picker with files marked in the current namespace
+;; TODO: mini.pick
+;; - maybe a different binding to send selected elements to the quickfix list
+;; - couple of bindings to iterate the quickfix list
 
 (local augroup_module (vim.api.nvim_create_augroup :user_navigation {:clear true}))
 
@@ -90,6 +72,7 @@
 (local arglist_delete "<CMD>argd %<BAR>args<CR>")
 (local arglist_clear "<CMD>%argd<CR><C-L>")
 
+;; TODO: this needs to set the cursor too
 (fn arglist_pick [] (mini_pick.start {:source {:items vim.fn.argv :name :Arglist}}))
 
 ;; Create a new local arglist for each tabpage.

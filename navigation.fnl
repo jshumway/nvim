@@ -87,20 +87,81 @@
 ;; Arglist
 
 (local arglist_add "<CMD>$arge %<BAR>argded<BAR>args<CR>")
-
 (local arglist_delete "<CMD>argd %<BAR>args<CR>")
 (local arglist_clear "<CMD>%argd<CR><C-L>")
 
-;; TODO: cycle around list
-(local arglist_prev "<CMD>exe v:count1 .. 'N'<BAR>args<CR><ESC>")
-(local arglist_next "<CMD>exe v:count1 .. 'n'<BAR>args<CR><ESC>")
-
 (fn arglist_pick [] (mini_pick.start {:source {:items vim.fn.argv :name :Arglist}}))
 
+;; Create a new local arglist for each tabpage.
 (vim.api.nvim_create_autocmd :TabNewEntered {
     :group augroup_module
     :command "argl|%argd"
 })
+
+;; arglist_open_cursor_or_last_buffer either focuses the buffer currently
+;; pointed to by argidx, if it is not already focused; otherwise it opens the
+;; previously focused buffer.
+(fn arglist_open_cursor_or_last_buffer []
+    (let [path (vim.fn.expand "%")
+          args (-> (vim.fn.argv) (vim.iter) (: :enumerate))
+          (current_idx) (args:find #(= path $2))
+          argidx (+ 1 (vim.fn.argidx))]
+        (if (or (= current_idx argidx) (= 0 (vim.fn.argc)))
+            (let [key (vim.api.nvim_replace_termcodes :<C-^> true false true)]
+                (vim.api.nvim_feedkeys key :n false))
+        :else
+            (vim.cmd.argument))))
+
+;; arglist_shift moves through the arglist, updating argidx, with wrapping.
+(fn arglist_shift [n]
+    (let [target_idx (+ n (vim.fn.argidx))
+          target_idx (% target_idx (vim.fn.argc))
+          diff (- target_idx (vim.fn.argidx))]
+        (if (< diff 0)
+            (vim.cmd (.. (tostring (math.abs diff)) "prev"))
+        :else
+            (vim.cmd (.. (tostring (math.abs diff)) "next"))))
+    (vim.cmd :args))
+
+(fn arglist_next [] (arglist_shift 1))
+(fn arglist_prev [] (arglist_shift -1))
+
+
+;; TODO: this is going to need to be tab-aware eventually...
+;; the buffer we'll be showing in the floating window...
+;; the window we'll make float, appear, and disappear
+
+; H.buffer_create = function()
+;   local buf_id = vim.api.nvim_create_buf(false, true)
+;   H.set_buf_name(buf_id, 'content')
+;   vim.bo[buf_id].filetype = 'mininotify'
+;   return buf_id
+; end
+
+;; For setting buffer contents:
+;; https://github.com/echasnovski/mini.nvim/blob/main/lua/mini/notify.lua#L738C1-L738C17
+
+; let buf = nvim_create_buf(v:false, v:true)
+; call nvim_buf_set_lines(buf, 0, -1, v:true, ["test", "text"])
+; let opts = {'relative': 'cursor', 'width': 10, 'height': 2, 'col': 0,
+;     \ 'row': 1, 'anchor': 'NW', 'style': 'minimal'}
+; let win = nvim_open_win(buf, 0, opts)
+; " optional: change highlight, otherwise Pmenu is used
+; call nvim_set_option_value('winhl', 'Normal:MyHighlight', {'win': win})
+
+
+;; In mini.notify, the lifecycle of the notification window is managed by
+;; tracking the list of active notifications, and starting a timer for each
+;; notification to be removed from that list once it is done, refreshing the
+;; overall notification system each time. During a refresh, if there are no
+;; active notifications, the window is closed.
+
+;; I could probably do a similar thing here, but maybe just updating an
+;; incrementing counter or something so a defered function knows if it is
+;; still in charge of the window or not.
+
+;; That's if I want it to be based on a raw delay. That's the easiest,
+;; certainly.
 
 ;; --------------------------------------------------------------------
 ;; Handle line numbers in file names
@@ -125,6 +186,7 @@
     :resume_last_picker mini_pick.builtin.resume
     :pick_help mini_pick.builtin.help
 
+    : arglist_open_cursor_or_last_buffer
     : arglist_add
     : arglist_clear
     : arglist_delete

@@ -119,7 +119,7 @@
     }))
 
 (now-let [m (require :buffers)]
-    (map :n :<Leader><Leader> m.last_buffer {:noremap true :desc "Last buffer"})
+    ; (map :n :<Leader><Leader> m.last_buffer {:noremap true :desc "Last buffer"})
     (map :n :<Leader>bb m.pick_buffers {:noremap true :desc "Pick buffer"})
     (map :n :<Leader>bd m.wipeout {:noremap true :desc "Delete buffer"})
     (map :n :<Leader>bn m.next_buffer {:noremap true :desc "Next buffer"})
@@ -172,6 +172,7 @@
 (later-let [m (require :navigation)]
     (map :n :<Leader>r m.resume_last_picker {:desc "Last picker"})
 
+    (map :n :<Leader><Leader> m.arglist_open_cursor_or_last_buffer {:noremap true :desc "Last buffer"})
     (map :n :<Leader>fr m.pick_recent {:noremap true :desc "Recent files"})
     (map :n :<Leader>fe m.explore_files_at_current_path {:desc "File explorer"})
     (map :n :<Leader>ff m.pick_files_at_path {:desc "Find files"})

@@ -75,6 +75,12 @@
         :format_after_save {:lsp_format :fallback}
     }))
 
+
+(fn window_has_no_neck_pain_buf [win_id]
+    (let [bufnr (vim.fn.winbufnr win_id)
+          buf_ft (vim.api.nvim_buf_get_option bufnr :filetype)]
+        (= :no-neck-pain buf_ft)))
+
 (let [_ (mini_deps.add {:source :shortcuts/no-neck-pain.nvim})
       m (require :no-neck-pain)]
     (m.setup {
@@ -92,13 +98,12 @@
     ;; so that they doesn't interfere with saving the session.
     (vim.api.nvim_create_autocmd :QuitPre {
         :callback
-        #(when (= 3 (length (vim.api.nvim_list_wins)))
-            (->> (vim.api.nvim_list_wins)
-                (vim.tbl_filter
-                    #(let [bufnr (vim.fn.winbufnr $)]
-                        (= :no-neck-pain (vim.api.nvim_buf_get_option bufnr :filetype))))
-                (vim.tbl_map #(vim.api.nvim_win_close $ true))))})
-    )
+        #(let [wins (vim.api.nvim_list_wins)]
+            (when (= 3 (length wins))
+                (let [nnp_wins (vim.tbl_filter window_has_no_neck_pain_buf wins)]
+                    (when (= 2 (length nnp_wins))
+                        (vim.tbl_map #(vim.api.nvim_win_close $ true) nnp_wins)))))
+    }))
 
 ;; TODO: for some reason this is ruining my ability to select (press enter on) entries
 ;; in the quickfix list. Disabling it for now.

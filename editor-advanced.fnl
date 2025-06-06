@@ -86,7 +86,19 @@
         :buffers {
             :setNames true
         }
-    }))
+    })
+
+    ;; Prior to closing the last non-no-neck-pain window, close the no-neck-pain windows
+    ;; so that they doesn't interfere with saving the session.
+    (vim.api.nvim_create_autocmd :QuitPre {
+        :callback
+        #(when (= 3 (length (vim.api.nvim_list_wins)))
+            (->> (vim.api.nvim_list_wins)
+                (vim.tbl_filter
+                    #(let [bufnr (vim.fn.winbufnr $)]
+                        (= :no-neck-pain (vim.api.nvim_buf_get_option bufnr :filetype))))
+                (vim.tbl_map #(vim.api.nvim_win_close $ true))))})
+    )
 
 ;; TODO: for some reason this is ruining my ability to select (press enter on) entries
 ;; in the quickfix list. Disabling it for now.

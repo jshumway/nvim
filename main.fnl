@@ -51,6 +51,12 @@
     ; (map :n :<leader>fE #(vim.cmd.edit (.. MYVIMRC_ROOT "main.fnl")) {:desc "Edit .nvimrc"})
     )
 
+(now-let [m (require :mini.sessions)]
+    (m.setup {
+        :autoread true
+        :autowrite true
+    }))
+
 (when (= vim.g.os :windows)
     (now-let [m (require :os-windows)]
         nil))

@@ -21,9 +21,11 @@
 
 (fn create_terminal [?count]
     (Terminal:new {
+        :display_name :terminal
         :direction :float
         ; :direction :horizontal
         :count (or ?count 1)
+        :auto_scroll false
     }))
 
 (let [_ (mini_deps.add {:source :xb-bx/editable-term.nvim})

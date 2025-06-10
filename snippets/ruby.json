@@ -1,0 +1,3 @@
+{
+    "struct": { "prefix": "struct", "body": "class ${1:Name} < T::Struct\n\tprop :${2:prop_name}, ${0:String}\nend" }
+}

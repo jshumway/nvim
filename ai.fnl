@@ -4,11 +4,12 @@
 
 (fn create_goose_terminal []
     (Terminal:new {
-        :display_name :goose
+        :display_name :Goose
         :cmd "pay goose"
         ; :direction :vertical
         :direction :float
         :count 0
+        :auto_scroll false
     }))
 
 {

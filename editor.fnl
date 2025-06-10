@@ -22,6 +22,9 @@
 
 (set vim.o.spelloptions :camel)
 
+(set vim.o.list true)
+(set vim.o.listchars "trail:.,tab:» ")
+
 ; (set vim.o.cmdheight 0)
 
 ;; Shift indentation without losing selection.
@@ -109,8 +112,8 @@
         }
     }))
 
-(let [m (require :mini.trailspace)]
-    (m.setup))
+; (let [m (require :mini.trailspace)]
+;     (m.setup {}))
 
 ;; --------------------------------------------------------------------
 ;; Completion & snippets
@@ -179,7 +182,7 @@
 ;; --------------------------------------------------------------------
 ;; Diagnostics
 
-(vim.diagnostic.config {:virtual_text false :virtual_lines {}})
+(vim.diagnostic.config {:virtual_text true :virtual_lines {}})
 
 {
     :half_page_up_center "<C-u>zz"

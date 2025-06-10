@@ -241,8 +241,9 @@
     ;; used to kill the rest of the line.
     ; (map :t :<C-k><C-k> m.terminal_insert_focus_window_up {:noremap true :silent true})
 
-    (m.on_term_enter (fn [ctx]
-        (map :n :<ESC> #(m.focus_or_toggle main_terminal) {:buffer ctx.buf :silent true}))))
+    ; (m.on_term_enter (fn [ctx]
+    ;     (map :n :<ESC> #(m.focus_or_toggle main_terminal) {:buffer ctx.buf :silent true})))
+    )
 
 (later-let [m (require :diff)]
     (map :n :<Leader>dS m.toggle_inline_changes {:noremap true :silent true :desc "Show diff inline"})
@@ -255,9 +256,11 @@
             terminal (require :terminal)
             goose_terminal (m.create_goose_terminal)]
     (map :n :<Leader>gg #(terminal.focus_or_toggle goose_terminal) {:noremap true :silent true :desc "Goose"})
+    (map :i :<C-g> #(terminal.focus_or_toggle goose_terminal) {:noremap true :silent true})
+    (map :n :<C-g> #(terminal.focus_or_toggle goose_terminal) {:noremap true :silent true})
 
-    (m.on_goose_term_enter (fn [ctx]
-        (map :n :<ESC> #(terminal.focus_or_toggle goose_terminal) {:buffer ctx.buf :silent true})))
+    ; (m.on_goose_term_enter (fn [ctx]
+    ;     (map :n :<ESC> #(terminal.focus_or_toggle goose_terminal) {:buffer ctx.buf :silent true})))
 
     (table.insert module_clues [
         {:mode :n :keys :<Leader>g :desc :+Goose}

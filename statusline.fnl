@@ -44,6 +44,8 @@
 
 
 (fn inactive []
+    ;; TODO: inactive needs to show the "modified" marker too
+    ;; (and also the arglist number)
     (if (= vim.bo.filetype :no-neck-pain)
         ""
     :else

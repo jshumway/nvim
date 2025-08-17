@@ -24,15 +24,20 @@
     (let [(r g b) (hsl/x h s l)]
         (string.format "#%02x%02x%02x" (* r 255) (* g 255) (* b 255))))
 
-(fn always_true [] true)
+;; NOTE: these `h_` functions are taken directly from hlpatterns.lua. They cannot
+;; be re-used directly because they are private to that module.
+(fn h_always_true [] true)
 
 (fn h_error [msg] (error (.. "(gen_highlighter_hsl_color) " msg) 0))
+
+(fn h_wrap_pattern_with_filter [pattern filter]
+    (fn [...] (when (filter ...) pattern)))
 
 (lambda gen_highlighter_hsl_color [?opts]
     (local default_opts {
         :style :full
         :priority 200
-        :filter always_true
+        :filter h_always_true
         :inline_text "█"
         :lang :lua
         :fn_name "hsl"
@@ -40,7 +45,7 @@
     (local opts (vim.tbl_deep_extend :force default_opts (or ?opts {})))
 
     (local style opts.style)
-    (assert (or (= style :full)) "invalid value for opts.style")
+    (assert (or (= style :full) (= style :inline) (= style :line)) "invalid value for opts.style")
 
     (when (and (= style :inline) (= 0 (vim.fn.has :nvim-0.10)))
         (h_error "Style 'inline' in `gen_highlighter.hex_color()` requires Neovim>=0.10."))
@@ -64,11 +69,12 @@
                 {: virt_text : priority :right_gravity false :virt_text_pos :inline}))))
 
     {
-        : pattern : extmark_opts
+        :pattern (h_wrap_pattern_with_filter pattern opts.filter)
         :group (fn [_ raw_match _]
             (let [(_ _ hs ss ls) (raw_match:find "(%d+).-(%d+).-(%d+)")
                   h (tonumber hs) s (tonumber ss) l (tonumber ls)]
                 (when (and (>= h 0) (<= h 360) (>= s 0) (<= s 100) (>= l 0) (<= l 100))
                     (mini_hipatterns.compute_hex_color_group (hsl/xs h s l) hl_style))))
+         : extmark_opts
     })
 

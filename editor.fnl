@@ -101,7 +101,9 @@
             (set vim.b.miniindentscope_disable true)
         )}))
 
-(let [m (require :mini.hipatterns)]
+;; TODO: integrate all the normal hipatterns options
+(let [m (require :mini.hipatterns)
+      gen_highlighter_hsl_color (require :gen_highlighter_hsl_color)]
     (m.setup {
         :highlighters {
             :fixme {:pattern :FIXME :group :MiniHipatternsFixme }
@@ -109,6 +111,8 @@
             :todo {:pattern :TODO :group :MiniHipatternsTodo }
             :note {:pattern :NOTE :group :MiniHipatternsNote }
             :hex_color (m.gen_highlighter.hex_color)
+            :hsl_color_lua (gen_highlighter_hsl_color {:lang :fnl})
+            :hsl_color_fnl (gen_highlighter_hsl_color {:lang :lua})
         }
     }))
 

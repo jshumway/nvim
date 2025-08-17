@@ -50,7 +50,18 @@
 ;     )
 
 (local mini_diff (require :mini.diff))
-(mini_diff.setup {})
+(mini_diff.setup {
+    :mappings {
+        ;; TODO: move these mappings to init.fnl
+        :goto_first nil
+        :goto_prev "<Leader>dH"
+        :goto_next "<Leader>dh"
+        :goto_last nil
+    }
+    :options {
+        :wrap_goto true
+    }
+})
 
 {
     ;; TODO: have this command reset the reference text to be the index or whatever...

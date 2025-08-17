@@ -250,6 +250,8 @@
 
     (table.insert module_clues [
         {:mode :n :keys :<Leader>d :desc :+Diff}
+        {:mode :n :keys :<Leader>dH :postkeys :<Leader>d}
+        {:mode :n :keys :<Leader>dh :postkeys :<Leader>d}
     ]))
 
 (later-let [m (require :ai)
@@ -276,7 +278,7 @@
 
 ;; Load work specific settings last so they can overwrite the above
 ;; language modules as needed.
-(when (vim.fn.filereadable :stripe.fnl)
+(when (= (vim.fn.filereadable :stripe.fnl) 1)
     (now-let [m (require :stripe)]
         ;; TODO: ideally this would only be added to Ruby buffers.
         (map :n :<Leader>cS m.copy_symbol_name {:noremap true :desc "Copy symbol name"})))

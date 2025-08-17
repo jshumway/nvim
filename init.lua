@@ -17,11 +17,12 @@ end
 MYVIMRC_ROOT = string.gsub(vim.env.MYVIMRC, PATH_PATTERN, "%1")
 
 package.path = MYVIMRC_ROOT .. "?.lua;" .. package.path
+package.path = string.gsub(package.path, ";.\\%?.lua;", ";")
 
 -- bootstrap Fennel.
 fennel = require("fennel.fennel").install()
 -- Add ~/.config/nvim to fennel path.
-fennel.path = MYVIMRC_ROOT .. "?.fnl;" .. fennel.path
+fennel.path = MYVIMRC_ROOT .. "?.fnl;" .. MYVIMRC_ROOT .. "?/init.fnl;"
 fv = require("fennel.view")
 -- Load the config entrypoint.
 require("main")

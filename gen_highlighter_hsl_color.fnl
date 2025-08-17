@@ -66,7 +66,9 @@
     {
         : pattern : extmark_opts
         :group (fn [_ raw_match _]
-            (let [(_ _ h s l) (raw_match:find "(%d+).-(%d+).-(%d+)")]
-                (mini_hipatterns.compute_hex_color_group (hsl/xs h s l) hl_style)))
+            (let [(_ _ hs ss ls) (raw_match:find "(%d+).-(%d+).-(%d+)")
+                  h (tonumber hs) s (tonumber ss) l (tonumber ls)]
+                (when (and (>= h 0) (<= h 360) (>= s 0) (<= s 100) (>= l 0) (<= l 100))
+                    (mini_hipatterns.compute_hex_color_group (hsl/xs h s l) hl_style))))
     })
 

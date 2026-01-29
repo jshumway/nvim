@@ -34,7 +34,7 @@
              :hooks {:post_checkout #(vim.cmd :TSUpdate)}})
       m (require :nvim-treesitter.configs)]
     (m.setup {
-        :ensure_installed [:lua :vimdoc :ruby :fennel :sql]
+        :ensure_installed [:lua :vimdoc :ruby :fennel :sql :yaml :java :proto]
         :highlight {:enable true}
     }))
 
@@ -61,6 +61,13 @@
 (let [_ (mini_deps.add {:source :stevearc/conform.nvim})
       m (require :conform)]
     (m.setup {
+        :formatters {
+            :kulala {
+                :command "kulala-fmt"
+                :args ["format" "$FILENAME"]
+                :stdin false
+            }
+        }
         :formatters_by_ft {
             :javascript ["prettierd"]
             :typescript ["prettierd"]
@@ -71,39 +78,61 @@
             :jsonc ["prettierd"]
             :graphql ["prettierd"]
             :go [:goimports :gofmt]
+            ; :http [:kulala]
         }
+        ;; :format_on_save true
         :format_after_save {:lsp_format :fallback}
     }))
 
+; (fn window_has_no_neck_pain_buf [win_id]
+;     (local bufnr (vim.fn.winbufnr win_id))
+;     (when (> bufnr 0)
+;         (let [buf_ft (vim.api.nvim_buf_get_option bufnr :filetype)]
+;             (= :no-neck-pain buf_ft))))
+;
+; (let [_ (mini_deps.add {:source :shortcuts/no-neck-pain.nvim})
+;       m (require :no-neck-pain)]
+;     (m.setup {
+;         :width 160
+;         :autocmds {
+;             :enableOnVimEnter true
+;             :enableOnTabEnter true
+;         }
+;         :buffers {
+;             :setNames true
+;         }
+;     })
+;
+;     ;; Prior to closing the last non-no-neck-pain window, close the no-neck-pain windows
+;     ;; so that they doesn't interfere with saving the session.
+;     (vim.api.nvim_create_autocmd :QuitPre {
+;         :callback
+;         #(let [wins (vim.api.nvim_list_wins)]
+;             (when (= 3 (length wins))
+;                 (let [nnp_wins (vim.tbl_filter window_has_no_neck_pain_buf wins)]
+;                     (when (= 2 (length nnp_wins))
+;                         (vim.tbl_map #(vim.api.nvim_win_close $ true) nnp_wins)))))
+;     }))
 
-(fn window_has_no_neck_pain_buf [win_id]
-    (let [bufnr (vim.fn.winbufnr win_id)
-          buf_ft (vim.api.nvim_buf_get_option bufnr :filetype)]
-        (= :no-neck-pain buf_ft)))
-
-(let [_ (mini_deps.add {:source :shortcuts/no-neck-pain.nvim})
-      m (require :no-neck-pain)]
-    (m.setup {
-        :width 160
-        :autocmds {
-            :enableOnVimEnter true
-            :enableOnTabEnter true
-        }
-        :buffers {
-            :setNames true
-        }
-    })
-
-    ;; Prior to closing the last non-no-neck-pain window, close the no-neck-pain windows
-    ;; so that they doesn't interfere with saving the session.
-    (vim.api.nvim_create_autocmd :QuitPre {
-        :callback
-        #(let [wins (vim.api.nvim_list_wins)]
-            (when (= 3 (length wins))
-                (let [nnp_wins (vim.tbl_filter window_has_no_neck_pain_buf wins)]
-                    (when (= 2 (length nnp_wins))
-                        (vim.tbl_map #(vim.api.nvim_win_close $ true) nnp_wins)))))
-    }))
+;     (vim.api.nvim_create_autocmd :BufEnter {
+;         :callback (fn [ctx]
+;             (local buf_id ctx.buf)
+;             (local buf_ft (vim.api.nvim_buf_get_option buf_id :filetype))
+;
+;             ; (when (= :no-neck-pain buf_ft)
+;             ;     (local wins (vim.fn.win_findbuf buf_id))
+;             ;     (each [_ win (ipairs wins)]
+;             ;         (vim.notify (.. "set nofocusable on " buf_id))
+;             ;         (vim.api.nvim_win_set_config win {:focusable false}))
+;             ;     )
+;
+;
+;
+;             ; (when (window_has_no_neck_pain_buf buf_id)
+;             ;     (vim.notify (.. "set nofocusable on " buf_id))
+;             ;     (vim.api.nvim_win_set_config buf_id {:focusable false}))
+;                 )
+    ; })
 
 ;; TODO: for some reason this is ruining my ability to select (press enter on) entries
 ;; in the quickfix list. Disabling it for now.

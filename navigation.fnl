@@ -68,8 +68,8 @@
 ;; --------------------------------------------------------------------
 ;; Arglist
 
-(local arglist_add "<CMD>$arge %<BAR>argded<BAR>args<CR>")
-(local arglist_delete "<CMD>argd %<BAR>args<CR>")
+(local arglist_add "<CMD>$arge %<BAR>argded<CR>")
+(local arglist_delete "<CMD>argd %<CR>")
 (local arglist_clear "<CMD>%argd<CR><C-L>")
 
 ;; TODO: this needs to set the cursor too
@@ -104,7 +104,8 @@
             (vim.cmd (.. (tostring (math.abs diff)) "prev"))
         :else
             (vim.cmd (.. (tostring (math.abs diff)) "next"))))
-    (vim.cmd :args))
+    ; (vim.cmd :args)
+    )
 
 (fn arglist_next [] (arglist_shift 1))
 (fn arglist_prev [] (arglist_shift -1))

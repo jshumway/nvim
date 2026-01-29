@@ -183,8 +183,8 @@
     (map :n :<Leader>fG m.pick_grep {:desc "Grep (global)"})
     (map :n :<Leader>fh m.pick_help {:desc "Help"})
 
-    (map :n :<Leader>at m.arglist_add {:desc "Track"})
-    (map :n :<Leader>au m.arglist_delete {:desc "Untrack"})
+    (map :n :<Leader>aa m.arglist_add {:desc "Add / focus"})
+    (map :n :<Leader>ad m.arglist_delete {:desc "Delete"})
     (map :n :<Leader>ap m.arglist_pick {:desc "Pick"})
     (map :n :<Leader>ac m.arglist_clear {:desc "Clear"})
     (map :n :<Leader>an m.arglist_next {:desc "Next"})
@@ -327,6 +327,7 @@
         {:mode :n :keys "]c" :postkeys "]" :desc "Next change"}
         {:mode :n :keys "[C" :postkeys "["}
         {:mode :n :keys "]C" :postkeys "]"}
+        {:mode :n :keys "<Leader>R"}
     ])
 
     ;; Add module clues.

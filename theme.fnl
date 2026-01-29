@@ -6,7 +6,8 @@
 (fn no_clown_fiesta []
     (let [m (require :no-clown-fiesta)
           ;; https://github.com/aktersnurra/no-clown-fiesta.nvim/blob/master/lua/no-clown-fiesta/palette.lua
-          palette (require :no-clown-fiesta.palette)]
+          palettes (require :no-clown-fiesta.palettes)
+          palette (palettes.get :dark)]
         (m.setup {
             :type {
                 :bold false

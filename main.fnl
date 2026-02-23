@@ -254,19 +254,19 @@
         {:mode :n :keys :<Leader>dh :postkeys :<Leader>d}
     ]))
 
-(later-let [m (require :ai)
-            terminal (require :terminal)
-            goose_terminal (m.create_goose_terminal)]
-    (map :n :<Leader>gg #(terminal.focus_or_toggle goose_terminal) {:noremap true :silent true :desc "Goose"})
-    (map :i :<C-g> #(terminal.focus_or_toggle goose_terminal) {:noremap true :silent true})
-    (map :n :<C-g> #(terminal.focus_or_toggle goose_terminal) {:noremap true :silent true})
-
-    ; (m.on_goose_term_enter (fn [ctx]
-    ;     (map :n :<ESC> #(terminal.focus_or_toggle goose_terminal) {:buffer ctx.buf :silent true})))
-
-    (table.insert module_clues [
-        {:mode :n :keys :<Leader>g :desc :+Goose}
-    ]))
+; (later-let [m (require :ai)
+;             terminal (require :terminal)
+;             goose_terminal (m.create_goose_terminal)]
+;     (map :n :<Leader>gg #(terminal.focus_or_toggle goose_terminal) {:noremap true :silent true :desc "Goose"})
+;     (map :i :<C-g> #(terminal.focus_or_toggle goose_terminal) {:noremap true :silent true})
+;     (map :n :<C-g> #(terminal.focus_or_toggle goose_terminal) {:noremap true :silent true})
+;
+;     ; (m.on_goose_term_enter (fn [ctx]
+;     ;     (map :n :<ESC> #(terminal.focus_or_toggle goose_terminal) {:buffer ctx.buf :silent true})))
+;
+;     (table.insert module_clues [
+;         {:mode :n :keys :<Leader>g :desc :+Goose}
+;     ]))
 
 ;; TODO: disable because pay-server is so big.
 ;; (later-let [m (require :git)] nil)

@@ -230,20 +230,20 @@
     ; ])
     )
 
-(later-let [m (require :terminal)
-            main_terminal (m.create_terminal)]
-    (map :n :<C-t> #(m.focus_or_toggle main_terminal) {:silent true})
-    (map :i :<C-t> #(m.focus_or_toggle main_terminal) {:silent true})
-    (map :t :<C-t> #(m.focus_or_toggle main_terminal) {:silent true})
-
-    (map :t :<ESC> m.escape_from_terminal_insert_mode {:noremap true :silent true})
-    ;; NOTE: <C-k><C-k> prevents conflict with the readline command <C-k>
-    ;; used to kill the rest of the line.
-    ; (map :t :<C-k><C-k> m.terminal_insert_focus_window_up {:noremap true :silent true})
-
-    ; (m.on_term_enter (fn [ctx]
-    ;     (map :n :<ESC> #(m.focus_or_toggle main_terminal) {:buffer ctx.buf :silent true})))
-    )
+; (later-let [m (require :terminal)
+;             main_terminal (m.create_terminal)]
+;     ; (map :n :<C-t> #(m.focus_or_toggle main_terminal) {:silent true})
+;     ; (map :i :<C-t> #(m.focus_or_toggle main_terminal) {:silent true})
+;     ; (map :t :<C-t> #(m.focus_or_toggle main_terminal) {:silent true})
+;
+;     ; (map :t :<ESC> m.escape_from_terminal_insert_mode {:noremap true :silent true})
+;     ;; NOTE: <C-k><C-k> prevents conflict with the readline command <C-k>
+;     ;; used to kill the rest of the line.
+;     ; (map :t :<C-k><C-k> m.terminal_insert_focus_window_up {:noremap true :silent true})
+;
+;     ; (m.on_term_enter (fn [ctx]
+;     ;     (map :n :<ESC> #(m.focus_or_toggle main_terminal) {:buffer ctx.buf :silent true})))
+;     )
 
 (later-let [m (require :diff)]
     (map :n :<Leader>dS m.toggle_inline_changes {:noremap true :silent true :desc "Show diff inline"})

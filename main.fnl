@@ -245,13 +245,34 @@
 ;     ;     (map :n :<ESC> #(m.focus_or_toggle main_terminal) {:buffer ctx.buf :silent true})))
 ;     )
 
-(later-let [m (require :diff)]
-    (map :n :<Leader>dS m.toggle_inline_changes {:noremap true :silent true :desc "Show diff inline"})
-
+;; Loaded now (not later) so review mode can restore notes buffers and its base
+;; when mini.sessions reads a session on VimEnter.
+(now-let [m (require :diff)]
     (table.insert module_clues [
         {:mode :n :keys :<Leader>d :desc :+Diff}
         {:mode :n :keys :<Leader>dH :postkeys :<Leader>d}
         {:mode :n :keys :<Leader>dh :postkeys :<Leader>d}
+        {:mode :n :keys "]h" :postkeys "]" :desc "Next hunk"}
+        {:mode :n :keys "[h" :postkeys "[" :desc "Prev hunk"}
+    ]))
+
+(now-let [m (require :review_mode)]
+    (map :n :<Leader>dS m.toggle_overlay {:noremap true :silent true :desc "Toggle diff overlay"})
+    (map :n :<Leader>db m.start {:noremap true :desc "Review vs default branch"})
+    (map :n :<Leader>dB m.pick_base {:noremap true :desc "Review vs branch"})
+    (map :n :<Leader>dx m.stop {:noremap true :desc "Stop review"})
+    (map :n :<Leader>df m.pick_changed_files {:noremap true :desc "Changed files"})
+    (map :n :<Leader>dt m.toggle_base_version {:noremap true :desc "Toggle base version"})
+    (map :n :<Leader>dn m.next_file {:noremap true :desc "Next changed file"})
+    (map :n :<Leader>dN m.prev_file {:noremap true :desc "Prev changed file"})
+    (map :n :<Leader>dh m.next_hunk {:noremap true :desc "Next hunk"})
+    (map :n :<Leader>dH m.prev_hunk {:noremap true :desc "Prev hunk"})
+
+    (table.insert module_clues [
+        {:mode :n :keys :<Leader>db :postkeys :<Leader>d}
+        {:mode :n :keys :<Leader>dB :postkeys :<Leader>d}
+        {:mode :n :keys :<Leader>dn :postkeys :<Leader>d}
+        {:mode :n :keys :<Leader>dN :postkeys :<Leader>d}
     ]))
 
 ; (later-let [m (require :ai)

@@ -53,10 +53,10 @@
 (mini_diff.setup {
     :mappings {
         ;; TODO: move these mappings to init.fnl
-        :goto_first nil
-        :goto_prev "<Leader>dH"
-        :goto_next "<Leader>dh"
-        :goto_last nil
+        :goto_first "[H"
+        :goto_prev "[h"
+        :goto_next "]h"
+        :goto_last "]H"
     }
     :options {
         :wrap_goto true

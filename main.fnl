@@ -267,6 +267,10 @@
     (map :n :<Leader>dN m.prev_file {:noremap true :desc "Prev changed file"})
     (map :n :<Leader>dh m.next_hunk {:noremap true :desc "Next hunk"})
     (map :n :<Leader>dH m.prev_hunk {:noremap true :desc "Prev hunk"})
+    ;; Replace mini.diff's normal mode hunk jumps; visual and operator-pending
+    ;; keep its own.
+    (map :n "]h" m.next_hunk {:noremap true :desc "Next hunk"})
+    (map :n "[h" m.prev_hunk {:noremap true :desc "Prev hunk"})
 
     (table.insert module_clues [
         {:mode :n :keys :<Leader>db :postkeys :<Leader>d}

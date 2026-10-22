@@ -271,14 +271,16 @@
 (fn file_diff [item opts]
     (text_diff (or (base_text H.base item.rel) "") (disk_text item.path) opts))
 
-(fn first_changed_line [item]
-    (let [hunk (. (file_diff item {:result_type :indices}) 1)]
+(fn changed_line [item which]
+    "First line of the first (or, with `which` :last, the last) hunk in `item`."
+    (let [hunks (file_diff item {:result_type :indices})
+          hunk (. hunks (if (= which :last) (length hunks) 1))]
         (if hunk (math.max 1 (. hunk 3)) 1)))
 
-(fn open_item [item]
+(fn open_item [item which]
     (vim.cmd.edit (vim.fn.fnameescape item.path))
-    (pcall vim.api.nvim_win_set_cursor 0 [(first_changed_line item) 0])
-    (vim.cmd "normal! zz"))
+    (pcall vim.api.nvim_win_set_cursor 0 [(changed_line item which) 0])
+    (vim.cmd "normal! ^zvzz"))
 
 (fn preview_item [buf_id item]
     (let [patch (file_diff item {:result_type :unified :ctxlen 3})
@@ -496,7 +498,8 @@
                 :preview preview_item
                 :choose (fn [item] (when item (vim.schedule #(open_item item))) nil)}}))))
 
-(fn goto_changed_file [direction]
+(fn goto_changed_file [direction which]
+    "Open the next or previous changed file at its first hunk (or `which`)."
     (when (ensure_base)
         (let [items (changed_files)
               n (length items)
@@ -505,12 +508,48 @@
             (if (= n 0)
                 (vim.notify "Review: no changed files" vim.log.levels.INFO)
                 (do
-                    (var idx (if (= direction :next) 1 n))
+                    (var idx nil)
                     (when current
                         (if (= direction :next)
                             (for [i n 1 -1] (when (> (. items i :rel) current) (set idx i)))
                             (for [i 1 n] (when (< (. items i :rel) current) (set idx i)))))
-                    (open_item (. items idx)))))))
+                    (when (and current (= idx nil))
+                        (vim.notify (.. "Review: wrapped to the " (if (= direction :next) "first" "last") " file")
+                                    vim.log.levels.INFO))
+                    (open_item (. items (or idx (if (= direction :next) 1 n))) which))))))
+
+(fn hunk_ranges [buf_id]
+    "Hunk ranges in `buf_id` as mini.diff navigates them: sorted, with touching
+    hunks merged."
+    (let [hunks (or (?. (mini_diff.get_buf_data buf_id) :hunks) [])
+          ranges []]
+        (table.sort hunks #(< $1.buf_start $2.buf_start))
+        (each [_ h (ipairs hunks)]
+            (let [from (math.max h.buf_start 1)
+                  to (if (> h.buf_count 0) (+ h.buf_start h.buf_count -1) from)
+                  last (. ranges (length ranges))]
+                (if (and last (<= from (+ last.to 1)))
+                    (set last.to (math.max last.to to))
+                    (table.insert ranges {: from : to}))))
+        ranges))
+
+(fn goto_hunk [direction]
+    "Jump to the next or previous hunk and center it. In review mode, moving
+    past the last (or first) hunk of a file goes on to the next (or previous)
+    changed file, so the whole review can be read hunk by hunk."
+    (let [line (vim.fn.line ".")
+          ranges (hunk_ranges 0)
+          in_file (if (= direction :next)
+                      (accumulate [found false _ r (ipairs ranges) &until found] (> r.from line))
+                      (accumulate [found false _ r (ipairs ranges) &until found] (< r.to line)))]
+        (if in_file
+            (do (mini_diff.goto_hunk direction {:n_times 1 :wrap false})
+                (vim.cmd "normal! zz"))
+            H.base
+            (goto_changed_file direction (if (= direction :next) :first :last))
+            (when (mini_diff.get_buf_data 0)
+                (mini_diff.goto_hunk direction {:n_times 1})
+                (vim.cmd "normal! zz")))))
 
 (fn toggle_base_version []
     (let [file vim.b.review_file]
@@ -611,6 +650,6 @@
     : toggle_overlay
     :next_file #(goto_changed_file :next)
     :prev_file #(goto_changed_file :prev)
-    :next_hunk #(mini_diff.goto_hunk :next)
-    :prev_hunk #(mini_diff.goto_hunk :prev)
+    :next_hunk #(goto_hunk :next)
+    :prev_hunk #(goto_hunk :prev)
 }

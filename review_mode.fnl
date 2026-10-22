@@ -10,13 +10,19 @@
 ;; - every buffer in the repo uses the base as its mini.diff reference text
 ;; - the changed files picker lists files changed since the base, including
 ;;   uncommitted and untracked ones
-;; - next/prev file steps through that same list
+;; - next/prev file steps through that same list, in the overview's order when
+;;   there is one (see review_overview.fnl), skipping files marked done
+;; - files can be marked done: they move to the bottom of the picker and leave
+;;   the rotation until they change again
 ;; - the base version toggle swaps a file with an editable copy of it at the
 ;;   base, for taking notes (see "Base version notes" below)
 ;;
 ;; Review mode is remembered per repo and branch: opening a file on a branch
-;; brings back its review base and the notes buffers that were open. The
-;; overlay settings are remembered everywhere.
+;; brings back its review base, done files, and the notes buffers that were
+;; open. The overlay settings are remembered everywhere.
+;;
+;; Marking every file done, or sending comments (review_comments.fnl), records
+;; HEAD as reviewed. `:ReviewSince` then reviews only what came after it.
 ;;
 ;; NOTE: listing uncommitted changes needs `git status`, which can be slow in
 ;; very large repos, so it runs in the background and the picker updates when
@@ -50,10 +56,25 @@
     :exiting false
     ;; Whether to show the mini.diff overlay, in and out of review mode.
     :overlay {:review true :normal false}
+    ;; Files marked done on this branch, as {path sha256-of-contents}. A file
+    ;; that changes after it was marked goes back into the rotation.
+    :done {}
+    ;; Files whose done mark was dropped because they changed.
+    :stale {}
+    ;; Review order from the overview, as paths from the repo root.
+    :order nil
+    ;; HEAD when this branch was last reviewed, for `:ReviewSince`.
+    :last_reviewed nil
+    ;; Changed files in review order, with done marks. Rebuilt when cleared.
+    :rotation nil
+    :rotation_pending false
+    ;; Called when the list of changed files may have changed.
+    :on_changes #nil
 })
 
 (local NOTES_DIR (.. (vim.fn.stdpath :data) "/review-notes"))
 (local notes_ns (vim.api.nvim_create_namespace :review_notes))
+(local pick_ns (vim.api.nvim_create_namespace :review_pick))
 (local augroup (vim.api.nvim_create_augroup :review_mode {:clear true}))
 
 ;; ----------------------------------------------------------------------------
@@ -144,17 +165,31 @@
     (write_json SETTINGS_FILE {:overlay H.overlay}))
 
 (fn save_branch_state [root]
-    "Save the review base and open notes buffers for `root`'s current branch."
+    "Save the review base, done files and open notes buffers for `root`'s
+    current branch."
     (let [branch (and root (not H.exiting) (current_branch root))]
         (when branch
-            (write_json (branch_file root branch)
-                {: root
-                 : branch
-                 :ref (when (and H.base (= H.base.root root)) H.base.ref)
-                 :notes (icollect [_ buf_id (ipairs (vim.api.nvim_list_bufs))]
-                            (let [name (vim.api.nvim_buf_get_name buf_id)]
-                                (when (and (= 1 (vim.fn.buflisted buf_id)) (= (. H.notes_roots name) root))
-                                    name)))}))))
+            (let [file (branch_file root branch)
+                  old (or (read_json file) {})
+                  ours (and H.base (= H.base.root root))]
+                (write_json file
+                    {: root
+                     : branch
+                     :ref (when ours H.base.ref)
+                     :done (if ours H.done old.done)
+                     :last_reviewed (if ours H.last_reviewed old.last_reviewed)
+                     :notes (icollect [_ buf_id (ipairs (vim.api.nvim_list_bufs))]
+                                (let [name (vim.api.nvim_buf_get_name buf_id)]
+                                    (when (and (= 1 (vim.fn.buflisted buf_id)) (= (. H.notes_roots name) root))
+                                        name)))})))))
+
+(fn load_branch_state [root]
+    "Read the done files and last reviewed HEAD saved for `root`'s branch."
+    (let [branch (current_branch root)
+          state (or (and branch (read_json (branch_file root branch))) {})]
+        (set H.done (if (= (type state.done) :table) state.done {}))
+        (set H.last_reviewed (when (= (type state.last_reviewed) :string) state.last_reviewed))
+        (set H.stale {})))
 
 (let [settings (read_json SETTINGS_FILE)]
     (when (and settings (= (type settings.overlay) :table))
@@ -253,6 +288,7 @@
                                     (when (xy:find "[RC]") (set skip_next true))
                                     (tset changes (field:sub 4) (if (status:find "[RC]") "A" status)))))
                         (set H.worktree_changes changes)
+                        (H.on_changes)
                         (when on_done (on_done)))))))))
 
 (fn changed_files []
@@ -267,6 +303,74 @@
             {:text (.. (or (. committed rel) " ") (or (. worktree rel) " ") " " rel)
              :path (.. base.root "/" rel)
              : rel})))
+
+(fn content_hash [path]
+    (vim.fn.sha256 (disk_text path)))
+
+(fn ordered_files []
+    "Changed files in the overview's order, then by path."
+    (let [items (changed_files)
+          rank {}]
+        (each [i rel (ipairs (or H.order []))]
+            (when (= nil (. rank rel)) (tset rank rel i)))
+        (table.sort items (fn [a b]
+            (let [ra (or (. rank a.rel) math.huge)
+                  rb (or (. rank b.rel) math.huge)]
+                (if (= ra rb) (< a.rel b.rel) (< ra rb)))))
+        items))
+
+(fn rotation []
+    "Changed files in review order as `items`, and the ones not done as
+    `active`. A done file that changed since it was marked goes back in."
+    (or H.rotation
+        (let [items (ordered_files)
+              active []
+              changed []]
+            (each [_ item (ipairs items)]
+                (let [mark (. H.done item.rel)]
+                    (if (and mark (= mark (content_hash item.path)))
+                        (set item.done true)
+                        (do
+                            (when mark
+                                (tset H.done item.rel nil)
+                                (tset H.stale item.rel true)
+                                (table.insert changed item.rel))
+                            (table.insert active item)))))
+            (when (> (length changed) 0)
+                (save_branch_state H.base.root)
+                (vim.notify (string.format "Review: %d done file(s) changed, back in the rotation: %s"
+                                           (length changed) (table.concat changed ", "))))
+            (set H.rotation {: items : active})
+            H.rotation)))
+
+(fn refresh_rotation []
+    "Rebuild the rotation soon, outside of whatever is running now."
+    (set H.rotation nil)
+    (when (not H.rotation_pending)
+        (set H.rotation_pending true)
+        (vim.schedule #(do (set H.rotation_pending false)
+                           (when (and H.base (= H.rotation nil))
+                               (rotation)
+                               (vim.cmd.redrawstatus))))))
+
+(set H.on_changes refresh_rotation)
+
+(fn picker_items []
+    "The rotation for the picker: files not done first, then done ones."
+    (let [active []
+          done []]
+        (each [_ item (ipairs (. (rotation) :items))]
+            (table.insert (if item.done done active)
+                (vim.tbl_extend :force item
+                    {:text (.. (if item.done "✓ " (. H.stale item.rel) "! " "  ") item.text)})))
+        (vim.list_extend active done)))
+
+(fn show_picker_items [buf_id items query]
+    (mini_pick.default_show buf_id items query)
+    (vim.api.nvim_buf_clear_namespace buf_id pick_ns 0 -1)
+    (each [i item (ipairs items)]
+        (when item.done
+            (vim.api.nvim_buf_set_extmark buf_id pick_ns (- i 1) 0 {:line_hl_group :Comment}))))
 
 (fn file_diff [item opts]
     (text_diff (or (base_text H.base item.rel) "") (disk_text item.path) opts))
@@ -410,18 +514,24 @@
                 (set H.base {: root : ref : sha})
                 (set H.worktree_changes {})
                 (set H.ref_texts {})
+                (set H.order nil)
+                (set H.rotation nil)
+                (load_branch_state root)
                 (set vim.g.review_base ref)
                 (set mini_diff.config.source [(review_source) (mini_diff.gen_source.git)])
                 (reattach_buffers)
                 (refresh_worktree_changes)
                 (save_branch_state root)
-                (vim.notify (string.format "Reviewing against %s (%s)" ref (sha:sub 1 10)))))))
+                (vim.notify (string.format "Reviewing against %s (%s)" ref (sha:sub 1 10)))
+                (vim.api.nvim_exec_autocmds :User {:pattern :ReviewStart :modeline false})))))
 
 (fn stop []
     (when H.base
         (local root H.base.root)
         (set H.base nil)
         (set H.ref_texts {})
+        (set H.order nil)
+        (set H.rotation nil)
         (set vim.g.review_base nil)
         (set mini_diff.config.source H.saved_source)
         (reattach_buffers)
@@ -490,33 +600,115 @@
             ;; `git status` may finish after the picker opens; update it in place.
             (refresh_worktree_changes #(when (and (mini_pick.is_picker_active)
                                                   (= (. (mini_pick.get_picker_opts) :source :name) name))
-                                           (mini_pick.set_picker_items (changed_files))))
+                                           (mini_pick.set_picker_items (picker_items))))
             (mini_pick.start {:source {
                 : name
-                :items (changed_files)
+                :items (picker_items)
                 :cwd H.base.root
+                :show show_picker_items
                 :preview preview_item
                 :choose (fn [item] (when item (vim.schedule #(open_item item))) nil)}}))))
 
 (fn goto_changed_file [direction which]
-    "Open the next or previous changed file at its first hunk (or `which`)."
+    "Open the next or previous file not done yet, in review order, at its
+    first hunk (or `which`)."
     (when (ensure_base)
-        (let [items (changed_files)
+        (let [{: items : active} (rotation)
               n (length items)
-              current (relpath H.base.root (buf_path 0))]
+              current (relpath H.base.root (buf_path 0))
+              pos (accumulate [found nil i item (ipairs items) &until found]
+                      (when (= item.rel current) i))
+              step (if (= direction :next) 1 -1)
+              from (if pos (+ pos step) (if (= direction :next) 1 n))]
             (refresh_worktree_changes)
             (if (= n 0)
                 (vim.notify "Review: no changed files" vim.log.levels.INFO)
+                (= (length active) 0)
+                (vim.notify "Review: every changed file is done" vim.log.levels.INFO)
                 (do
-                    (var idx nil)
-                    (when current
-                        (if (= direction :next)
-                            (for [i n 1 -1] (when (> (. items i :rel) current) (set idx i)))
-                            (for [i 1 n] (when (< (. items i :rel) current) (set idx i)))))
-                    (when (and current (= idx nil))
+                    ;; Walk the whole order from just past the current file,
+                    ;; wrapping around, to the first file not done.
+                    (var target nil)
+                    (var wrapped false)
+                    (for [k 0 (- n 1) &until target]
+                        (let [raw (+ from (* k step))
+                              i (+ (% (- raw 1) n) 1)]
+                            (when (not (. items i :done))
+                                (set target (. items i))
+                                (set wrapped (not= raw i)))))
+                    (when (and pos wrapped)
                         (vim.notify (.. "Review: wrapped to the " (if (= direction :next) "first" "last") " file")
                                     vim.log.levels.INFO))
-                    (open_item (. items (or idx (if (= direction :next) 1 n))) which))))))
+                    (open_item target which))))))
+
+(fn record_reviewed []
+    "Remember HEAD as reviewed on this branch, for `:ReviewSince`."
+    (let [sha (and H.base (git [:rev-parse :HEAD] H.base.root))]
+        (when sha
+            (set H.last_reviewed sha)
+            (save_branch_state H.base.root)
+            (vim.notify (.. "Review: recorded " (sha:sub 1 10) " as reviewed; :ReviewSince shows what comes after it")))))
+
+(fn toggle_done []
+    "Mark the current file done, or put it back in the rotation."
+    (when (ensure_base)
+        (let [rel (relpath H.base.root (buf_path 0))
+              item (accumulate [found nil _ item (ipairs (. (rotation) :items)) &until found]
+                       (when (= item.rel rel) item))]
+            (if (= item nil)
+                (vim.notify "Review: this file has no changes under review" vim.log.levels.INFO)
+                (do
+                    (if item.done
+                        (tset H.done rel nil)
+                        (do (tset H.done rel (content_hash item.path))
+                            (tset H.stale rel nil)))
+                    (set H.rotation nil)
+                    (save_branch_state H.base.root)
+                    (let [left (length (. (rotation) :active))]
+                        (vim.notify (string.format "Review: %s %s (%d left)"
+                                                   rel (if item.done "is back in the rotation" "done") left))
+                        (when (and (= left 0) (not item.done))
+                            (record_reviewed)))
+                    (vim.cmd.redrawstatus))))))
+
+(fn status []
+    "Where the current file is among the files not done yet, like `3/21`."
+    (if (= H.base nil)
+        ""
+        (= H.rotation nil)
+        ;; Building the rotation runs git, so not while drawing the status line.
+        (do (refresh_rotation) "")
+        (let [rel (relpath H.base.root (buf_path 0))
+              {: items : active} H.rotation
+              n (length active)
+              i (accumulate [found nil i item (ipairs active) &until found]
+                    (when (= item.rel rel) i))
+              done (accumulate [found false _ item (ipairs items) &until found]
+                       (and (= item.rel rel) item.done))]
+            (if i (string.format "%d/%d" i n)
+                (= n 0) "✓ all done"
+                done (string.format "✓ %d left" n)
+                (string.format "-/%d" n)))))
+
+(fn review_since []
+    "Review only what changed since HEAD was last recorded as reviewed."
+    (let [root (or (?. H.base :root) (git_root (current_dir)))]
+        (when (and root (not (and H.base (= H.base.root root))))
+            (load_branch_state root))
+        (let [sha H.last_reviewed]
+            (if (= root nil)
+                (vim.notify "Review: not in a git repository" vim.log.levels.WARN)
+                (= sha nil)
+                (vim.notify "Review: nothing on this branch was recorded as reviewed yet" vim.log.levels.INFO)
+                (= nil (git [:merge-base :--is-ancestor sha :HEAD] root))
+                (vim.notify (.. "Review: " (sha:sub 1 10) " is no longer in this branch (rebased?); "
+                                ":Review shows the whole change") vim.log.levels.WARN)
+                (start (sha:sub 1 12) root)))))
+
+(fn set_order [order]
+    "Set the review order (paths from the repo root), from the overview."
+    (set H.order order)
+    (refresh_rotation))
 
 (fn hunk_ranges [buf_id]
     "Hunk ranges in `buf_id` as mini.diff navigates them: sorted, with touching
@@ -614,6 +806,11 @@
     :group augroup
     :callback #(restore_for_buffer $.buf)})
 
+(vim.api.nvim_create_autocmd [:BufWritePost :FocusGained :ShellCmdPost :TermLeave] {
+    :group augroup
+    :desc "Rebuild the review rotation"
+    :callback #(when H.base (refresh_rotation))})
+
 (vim.api.nvim_create_autocmd :VimLeavePre {
     :group augroup
     :callback #(set H.exiting true)})
@@ -639,6 +836,10 @@
                 (vim.tbl_filter #(vim.startswith $ lead) refs)))}))
 
 (vim.api.nvim_create_user_command :ReviewOff #(stop) {:desc "Stop review mode"})
+(vim.api.nvim_create_user_command :ReviewSince #(review_since)
+    {:desc "Review what changed since the branch was last reviewed"})
+(vim.api.nvim_create_user_command :ReviewDone #(toggle_done)
+    {:desc "Mark the current file done, or put it back in the rotation"})
 
 {
     :start #(start)
@@ -652,4 +853,15 @@
     :prev_file #(goto_changed_file :prev)
     :next_hunk #(goto_hunk :next)
     :prev_hunk #(goto_hunk :prev)
+    : toggle_done
+    : status
+    :since review_since
+    : record_reviewed
+    : set_order
+    ;; For review_overview.fnl and review_comments.fnl.
+    :base #H.base
+    :items #(when (ensure_base) (. (rotation) :items))
+    :open_file (fn [rel] (when H.base (open_item {: rel :path (.. H.base.root "/" rel)})))
+    :notes_dir NOTES_DIR
+    :state_dir STATE_DIR
 }

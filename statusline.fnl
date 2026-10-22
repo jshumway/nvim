@@ -24,7 +24,9 @@
     (local (mode mode_hl) (mini_statusline.section_mode {:trunc_width 8192}))
     (local git (mini_statusline.section_git {:trunc_width 40}))
     (local diff (mini_statusline.section_diff {:trunc_width 75}))
-    (local review (if vim.g.review_base (.. "review:" vim.g.review_base) ""))
+    (local review (if vim.g.review_base
+                      (.. "review:" vim.g.review_base " " ((. (require :review_mode) :status)))
+                      ""))
     (local diagnostics (mini_statusline.section_diagnostics {:trunc_width 75}))
     (local lsp (mini_statusline.section_lsp {:trunc_width 75}))
     (local arglist (section_arglist))

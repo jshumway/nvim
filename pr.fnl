@@ -167,12 +167,19 @@
         ;; Only used if the buffer wasn't already open.
         (tset H.prefetched pr.url nil))))
 
+(fn copy [text]
+    "Put `text` on the clipboard, through OSC 52 where there is no clipboard
+    (a devbox), which reaches the laptop's clipboard through the terminal."
+    (if (= 1 (vim.fn.has :clipboard))
+        (vim.fn.setreg "+" text)
+        (((. (require :vim.ui.clipboard.osc52) :copy) "+") (vim.split text "\n" {:plain true}))))
+
 (fn open_url [url]
     "Open `url` in the browser. Where there is none (a devbox), copy it instead:
     OSC 52 reaches the laptop's clipboard through the terminal."
     (let [(cmd) (vim.ui.open url)]
         (when (= cmd nil)
-            (((. (require :vim.ui.clipboard.osc52) :copy) "+") [url])
+            (copy url)
             (vim.notify (.. "No browser here; copied " url)))))
 
 (fn open_in_browser []
@@ -184,4 +191,6 @@
 {
     : edit_description
     : open_in_browser
+    : open_url
+    : copy
 }

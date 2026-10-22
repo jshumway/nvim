@@ -271,6 +271,8 @@
     ;; keep its own.
     (map :n "]h" m.next_hunk {:noremap true :desc "Next hunk"})
     (map :n "[h" m.prev_hunk {:noremap true :desc "Prev hunk"})
+    (map :n :<Leader>dd m.toggle_done {:noremap true :desc "Mark file done"})
+    (map :n :<Leader>ds m.since {:noremap true :desc "Review since last review"})
 
     (table.insert module_clues [
         {:mode :n :keys :<Leader>db :postkeys :<Leader>d}
@@ -278,6 +280,12 @@
         {:mode :n :keys :<Leader>dn :postkeys :<Leader>d}
         {:mode :n :keys :<Leader>dN :postkeys :<Leader>d}
     ]))
+
+(now-let [m (require :review_overview)]
+    (map :n :<Leader>do m.open {:noremap true :desc "Review overview"}))
+
+(now-let [m (require :review_comments)]
+    (map :n :<Leader>dc m.send {:noremap true :desc "Send review comments"}))
 
 ;; Loaded now so sessions can restore PR description buffers.
 (now-let [m (require :pr)]

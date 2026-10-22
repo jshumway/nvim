@@ -343,6 +343,11 @@
             (set H.rotation {: items : active})
             H.rotation)))
 
+(fn redraw []
+    "Redraw the status line and the review bar."
+    (vim.cmd.redrawstatus)
+    (vim.cmd.redrawtabline))
+
 (fn refresh_rotation []
     "Rebuild the rotation soon, outside of whatever is running now."
     (set H.rotation nil)
@@ -351,7 +356,7 @@
         (vim.schedule #(do (set H.rotation_pending false)
                            (when (and H.base (= H.rotation nil))
                                (rotation)
-                               (vim.cmd.redrawstatus))))))
+                               (redraw))))))
 
 (set H.on_changes refresh_rotation)
 
@@ -536,7 +541,8 @@
         (set mini_diff.config.source H.saved_source)
         (reattach_buffers)
         (save_branch_state root)
-        (vim.notify "Review mode off")))
+        (vim.notify "Review mode off")
+        (vim.api.nvim_exec_autocmds :User {:pattern :ReviewStop :modeline false})))
 
 (fn toggle_overlay []
     "Toggle the mini.diff overlay in all buffers, for the current mode."
@@ -669,26 +675,34 @@
                                                    rel (if item.done "is back in the rotation" "done") left))
                         (when (and (= left 0) (not item.done))
                             (record_reviewed)))
-                    (vim.cmd.redrawstatus))))))
+                    (redraw))))))
 
-(fn status []
-    "Where the current file is among the files not done yet, like `3/21`."
+(fn progress []
+    "Where the current file is in the rotation: `i` of the `n` files not done
+    yet (nil if it isn't one of them), whether it's `done`, and how many of
+    the `total` changed files are done. Nil until the rotation is built."
     (if (= H.base nil)
-        ""
+        nil
         (= H.rotation nil)
-        ;; Building the rotation runs git, so not while drawing the status line.
-        (do (refresh_rotation) "")
-        (let [rel (relpath H.base.root (buf_path 0))
+        ;; Building the rotation runs git, so not while drawing.
+        (do (refresh_rotation) nil)
+        (let [rel (relpath H.base.root (or vim.b.review_file (buf_path 0)))
               {: items : active} H.rotation
-              n (length active)
               i (accumulate [found nil i item (ipairs active) &until found]
                     (when (= item.rel rel) i))
               done (accumulate [found false _ item (ipairs items) &until found]
                        (and (= item.rel rel) item.done))]
-            (if i (string.format "%d/%d" i n)
-                (= n 0) "✓ all done"
-                done (string.format "✓ %d left" n)
-                (string.format "-/%d" n)))))
+            {: i :n (length active) : done
+             :done_count (- (length items) (length active)) :total (length items)})))
+
+(fn status []
+    "Where the current file is among the files not done yet, like `3/21`."
+    (let [p (progress)]
+        (if (= p nil) ""
+            p.i (string.format "%d/%d" p.i p.n)
+            (= p.n 0) "✓ all done"
+            p.done (string.format "✓ %d left" p.n)
+            (string.format "-/%d" p.n))))
 
 (fn review_since []
     "Review only what changed since HEAD was last recorded as reviewed."
@@ -724,6 +738,15 @@
                     (set last.to (math.max last.to to))
                     (table.insert ranges {: from : to}))))
         ranges))
+
+(fn hunk_position []
+    "The hunk the cursor is in (nil between hunks) and how many the current
+    file has, counted as the hunk jumps count them."
+    (let [line (vim.fn.line ".")
+          ranges (hunk_ranges 0)]
+        {:i (accumulate [found nil i r (ipairs ranges) &until found]
+                (when (<= r.from line r.to) i))
+         :n (length ranges)}))
 
 (fn goto_hunk [direction]
     "Jump to the next or previous hunk and center it. In review mode, moving
@@ -855,6 +878,8 @@
     :prev_hunk #(goto_hunk :prev)
     : toggle_done
     : status
+    : progress
+    : hunk_position
     :since review_since
     : record_reviewed
     : set_order

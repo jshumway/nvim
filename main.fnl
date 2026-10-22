@@ -284,6 +284,8 @@
 (now-let [m (require :review_overview)]
     (map :n :<Leader>do m.open {:noremap true :desc "Review overview"}))
 
+(now-let [m (require :review_bar)] nil)
+
 (now-let [m (require :review_comments)]
     (map :n :<Leader>dc m.send {:noremap true :desc "Send review comments"}))
 

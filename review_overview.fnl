@@ -191,6 +191,7 @@
 (fn generate [root head base]
     "Write the overview for `head` with `claude -p`, in the background."
     (tset H.generating head true)
+    (vim.cmd.redrawtabline)
     (vim.notify "Review: writing an overview of the change…")
     (let [rels (icollect [_ item (ipairs (or (review.items) []))] item.rel)
           dir (overview_dir root)]
@@ -204,6 +205,7 @@
                         {:cwd root :text true :stdin (build_prompt root base pr rels) :timeout 600000}
                         (vim.schedule_wrap (fn [out]
                             (tset H.generating head nil)
+                            (vim.cmd.redrawtabline)
                             (let [(decoded result) (pcall vim.json.decode (or out.stdout ""))
                                   data (and decoded (= (type result) :table) result.structured_output)]
                                 (if (and (= (type data) :table) (= (type data.files) :table))
@@ -314,4 +316,6 @@
 {
     :open #(open false)
     :regenerate #(open true)
+    ;; For the review bar.
+    :writing #(not= nil (next H.generating))
 }

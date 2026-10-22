@@ -245,8 +245,8 @@
 ;     ;     (map :n :<ESC> #(m.focus_or_toggle main_terminal) {:buffer ctx.buf :silent true})))
 ;     )
 
-;; Loaded now (not later) so review mode can restore notes buffers and its base
-;; when mini.sessions reads a session on VimEnter.
+;; Loaded now (not later) so review mode sees the files opened at startup, and
+;; sessions can restore notes buffers.
 (now-let [m (require :diff)]
     (table.insert module_clues [
         {:mode :n :keys :<Leader>d :desc :+Diff}
@@ -275,6 +275,12 @@
         {:mode :n :keys :<Leader>dN :postkeys :<Leader>d}
     ]))
 
+;; Loaded now so sessions can restore PR description buffers.
+(now-let [m (require :pr)]
+    (map :n :<Leader>dP m.edit_description {:noremap true :desc "Edit PR description"})
+    (map :n :<Leader>dO m.open_in_browser {:noremap true :desc "Open PR in browser"})
+    (map :n :<Leader>dR m.mark_ready {:noremap true :desc "Mark PR ready for review"}))
+
 ; (later-let [m (require :ai)
 ;             terminal (require :terminal)
 ;             goose_terminal (m.create_goose_terminal)]
@@ -296,6 +302,7 @@
 ;; Language modules
 (now-let [m (require :lang.ruby)] nil)
 (now-let [m (require :lang.fennel)] nil)
+(now-let [m (require :lang.markdown)] nil)
 
 ;; Load work specific settings last so they can overwrite the above
 ;; language modules as needed.

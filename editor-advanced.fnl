@@ -34,7 +34,7 @@
              :hooks {:post_checkout #(vim.cmd :TSUpdate)}})
       m (require :nvim-treesitter.configs)]
     (m.setup {
-        :ensure_installed [:lua :vimdoc :ruby :fennel :sql :yaml :java :proto]
+        :ensure_installed [:lua :vimdoc :ruby :fennel :sql :yaml :java :proto :bash]
         :highlight {:enable true}
     }))
 
@@ -155,6 +155,15 @@
     ;     :desc "markdown code cells"
     ; }])
 )
+
+(let [_ (mini_deps.add {:source :MeanderingProgrammer/render-markdown.nvim})
+      m (require :render-markdown)]
+    (m.setup {
+        :preset :obsidian
+        :code {
+            :border :none
+        }
+    }))
 
 (local mini_extra (require :mini.extra))
 

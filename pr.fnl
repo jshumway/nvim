@@ -4,7 +4,6 @@
 ;; Work with the GitHub PR for the current branch through the `gh` CLI:
 ;; - edit its description in a buffer that posts to GitHub when written
 ;; - open it in the browser (or copy its URL where there is no browser)
-;; - mark it ready for review
 ;;
 ;; The description buffer is named `pr://<PR URL without https://>`. `:w`
 ;; posts the description. `:x` and `:wq` post it and then switch back to the
@@ -21,7 +20,7 @@
 })
 
 (local augroup (vim.api.nvim_create_augroup :user_pr {:clear true}))
-(local PR_FIELDS "number,title,url,body,isDraft,state")
+(local PR_FIELDS "number,title,url,body")
 
 ;; ----------------------------------------------------------------------------
 ;; Helpers
@@ -182,25 +181,7 @@
             (open_url url)
             (with_current_pr #(open_url $.url)))))
 
-(fn mark_ready []
-    (with_current_pr (fn [pr]
-        (if (not= pr.state :OPEN)
-            (vim.notify (string.format "PR #%d is %s" pr.number (pr.state:lower)))
-            (not pr.isDraft)
-            (vim.notify (string.format "PR #%d is already ready for review" pr.number))
-            (= 1 (vim.fn.confirm (string.format "Mark PR #%d ready for review?\n%s" pr.number pr.title) "&Yes\n&No" 2))
-            (gh_async [:pr :ready pr.url] nil (fn [ok out]
-                (if ok
-                    (vim.notify (string.format "PR #%d is ready for review" pr.number))
-                    ;; A devbox's GitHub proxy refuses this on purpose: a human
-                    ;; has to do it in GitHub.
-                    (out:find "github%-proxy%-srv")
-                    (do (open_url pr.url)
-                        (vim.notify "PR: devboxes can't mark PRs ready; do it in GitHub" vim.log.levels.WARN))
-                    (vim.notify (.. "PR: " out) vim.log.levels.ERROR))))))))
-
 {
     : edit_description
     : open_in_browser
-    : mark_ready
 }

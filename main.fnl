@@ -282,8 +282,7 @@
 ;; Loaded now so sessions can restore PR description buffers.
 (now-let [m (require :pr)]
     (map :n :<Leader>dP m.edit_description {:noremap true :desc "Edit PR description"})
-    (map :n :<Leader>dO m.open_in_browser {:noremap true :desc "Open PR in browser"})
-    (map :n :<Leader>dR m.mark_ready {:noremap true :desc "Mark PR ready for review"}))
+    (map :n :<Leader>dO m.open_in_browser {:noremap true :desc "Open PR in browser"}))
 
 ; (later-let [m (require :ai)
 ;             terminal (require :terminal)

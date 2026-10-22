@@ -510,7 +510,7 @@
           items (if root (worktree_items root) [])]
         (when (> (length items) 0)
             (let [lines ["# Review comments" ""
-                         "Comments and suggested changes Jared wrote in the files while reviewing, by file and line at the review commit."]]
+                         "Comments and suggested changes Jared wrote in the files while reviewing. Lines are numbered as in HEAD, before his edits."]]
                 (each [_ item (ipairs items)]
                     (vim.list_extend lines ["" (.. "## " (location item))])
                     (when (not= item.text "") (vim.list_extend lines (vim.split item.text "\n" {:plain true})))

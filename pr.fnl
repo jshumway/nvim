@@ -3,7 +3,7 @@
 ;;
 ;; Work with the GitHub PR for the current branch through the `gh` CLI:
 ;; - edit its description in a buffer that posts to GitHub when written
-;; - open it in the browser
+;; - open it in the browser (or copy its URL where there is no browser)
 ;; - mark it ready for review
 ;;
 ;; The description buffer is named `pr://<PR URL without https://>`. `:w`
@@ -168,11 +168,19 @@
         ;; Only used if the buffer wasn't already open.
         (tset H.prefetched pr.url nil))))
 
+(fn open_url [url]
+    "Open `url` in the browser. Where there is none (a devbox), copy it instead:
+    OSC 52 reaches the laptop's clipboard through the terminal."
+    (let [(cmd) (vim.ui.open url)]
+        (when (= cmd nil)
+            (((. (require :vim.ui.clipboard.osc52) :copy) "+") [url])
+            (vim.notify (.. "No browser here; copied " url)))))
+
 (fn open_in_browser []
     (let [url (buffer_pr_url 0)]
         (if url
-            (vim.ui.open url)
-            (with_current_pr #(vim.ui.open $.url)))))
+            (open_url url)
+            (with_current_pr #(open_url $.url)))))
 
 (fn mark_ready []
     (with_current_pr (fn [pr]

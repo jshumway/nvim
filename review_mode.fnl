@@ -4,6 +4,7 @@
 ;; Diff buffers against a fixed git base instead of the index, so mini.diff
 ;; marks everything the branch changed. By default the base is where the
 ;; branch forked from the default branch, which matches what a PR shows.
+;; Start from the shell with `nvim +Review` or `nvim "+Review main"`.
 ;;
 ;; While review mode is on:
 ;; - every buffer in the repo uses the base as its mini.diff reference text
@@ -13,8 +14,9 @@
 ;; - the base version toggle swaps a file with an editable copy of it at the
 ;;   base, for taking notes (see "Base version notes" below)
 ;;
-;; The review base, the overlay setting, and open notes buffers are saved in
-;; sessions.
+;; Review mode is remembered per repo and branch: opening a file on a branch
+;; brings back its review base and the notes buffers that were open. The
+;; overlay settings are remembered everywhere.
 ;;
 ;; NOTE: listing uncommitted changes needs `git status`, which can be slow in
 ;; very large repos, so it runs in the background and the picker updates when
@@ -34,8 +36,18 @@
     ;; Uncommitted changes from the last `git status`, keyed by path from the
     ;; repo root.
     :worktree_changes {}
+    ;; Reference text the review source set for each buffer, as mini.diff
+    ;; stores it.
+    :ref_texts {}
     ;; Notes buffers: {buf_id {:base_text :notes_path}}.
     :notes {}
+    ;; Repo root of each notes buffer, keyed by buffer name. Known before the
+    ;; buffer loads when it was reopened from saved state.
+    :notes_roots {}
+    ;; Repo roots whose saved state was already checked.
+    :restored {}
+    ;; Set while exiting, when buffers going away shouldn't change saved state.
+    :exiting false
     ;; Whether to show the mini.diff overlay, in and out of review mode.
     :overlay {:review true :normal false}
 })
@@ -43,14 +55,6 @@
 (local NOTES_DIR (.. (vim.fn.stdpath :data) "/review-notes"))
 (local notes_ns (vim.api.nvim_create_namespace :review_notes))
 (local augroup (vim.api.nvim_create_augroup :review_mode {:clear true}))
-
-;; Sessions only store globals with names like this one, and only as strings.
-(vim.opt.sessionoptions:append :globals)
-
-(fn save_state []
-    (set vim.g.ReviewState (vim.json.encode {:root (?. H.base :root)
-                                             :ref (?. H.base :ref)
-                                             :overlay H.overlay})))
 
 ;; ----------------------------------------------------------------------------
 ;; Git helpers
@@ -110,11 +114,74 @@
         (if (= (length lines) 0) "" (.. (table.concat lines "\n") "\n"))))
 
 ;; ----------------------------------------------------------------------------
+;; Saved state
+
+(local STATE_DIR (.. (vim.fn.stdpath :state) "/review"))
+(local SETTINGS_FILE (.. STATE_DIR "/settings.json"))
+
+(fn read_json [path]
+    (when (= 1 (vim.fn.filereadable path))
+        (let [(ok value) (pcall vim.json.decode (table.concat (vim.fn.readfile path) "\n"))]
+            (when (and ok (= (type value) :table)) value))))
+
+(fn write_json [path value]
+    (vim.fn.mkdir STATE_DIR :p)
+    (vim.fn.writefile [(vim.json.encode value)] path))
+
+(fn current_branch [root]
+    "The checked out branch, or nil when HEAD is detached."
+    (let [head_file (.. root "/.git/HEAD")
+          branch (if (= 1 (vim.fn.filereadable head_file))
+                     (: (or (. (vim.fn.readfile head_file "" 1) 1) "") :match "^ref: refs/heads/(.+)$")
+                     ;; Worktrees have a .git file instead of a directory.
+                     (git [:branch :--show-current] root))]
+        (when (not= branch "") branch)))
+
+(fn branch_file [root branch]
+    (.. STATE_DIR "/" (: (vim.fn.sha256 (.. root ":" branch)) :sub 1 16) ".json"))
+
+(fn save_settings []
+    (write_json SETTINGS_FILE {:overlay H.overlay}))
+
+(fn save_branch_state [root]
+    "Save the review base and open notes buffers for `root`'s current branch."
+    (let [branch (and root (not H.exiting) (current_branch root))]
+        (when branch
+            (write_json (branch_file root branch)
+                {: root
+                 : branch
+                 :ref (when (and H.base (= H.base.root root)) H.base.ref)
+                 :notes (icollect [_ buf_id (ipairs (vim.api.nvim_list_bufs))]
+                            (let [name (vim.api.nvim_buf_get_name buf_id)]
+                                (when (and (= 1 (vim.fn.buflisted buf_id)) (= (. H.notes_roots name) root))
+                                    name)))}))))
+
+(let [settings (read_json SETTINGS_FILE)]
+    (when (and settings (= (type settings.overlay) :table))
+        (each [mode on (pairs settings.overlay)]
+            (tset H.overlay mode on))))
+
+;; ----------------------------------------------------------------------------
 ;; mini.diff source
 
 (fn set_ref_text [buf_id text]
     (when (vim.api.nvim_buf_is_valid buf_id)
+        ;; mini.diff ends the text with a newline, and stores no text for `[]`.
+        (tset H.ref_texts buf_id (if (not= (type text) :string) false
+                                     (= (text:sub -1) "\n") text
+                                     (.. text "\n")))
         (pcall mini_diff.set_ref_text buf_id text)))
+
+(fn keep_review_ref_text [buf_id]
+    "Put back the base text if something else replaced it.
+
+    When review mode starts, a buffer may already be attached to mini.diff's
+    git source, which may still be reading the index. Detaching doesn't stop
+    that read, and when it finishes it sets the index as the reference text."
+    (let [expected (. H.ref_texts buf_id)
+          data (and expected H.base (vim.api.nvim_buf_is_valid buf_id) (mini_diff.get_buf_data buf_id))]
+        (when (and data (= data.summary.source_name :review) (not= data.ref_text expected))
+            (pcall mini_diff.set_ref_text buf_id expected))))
 
 (fn sync_overlay [buf_id]
     (let [data (and (vim.api.nvim_buf_is_valid buf_id) (mini_diff.get_buf_data buf_id))
@@ -293,10 +360,10 @@
     "Fill a `review://` buffer with its saved notes, or the file at the base."
     (let [name (vim.api.nvim_buf_get_name buf_id)
           (ref short rel) (name:match "^review://(.-)@(%x+)/(.+)$")
-          ;; Sessions restore these buffers before review mode, so fall back to cwd.
-          root (if (and short H.base (vim.startswith H.base.sha short))
-                   H.base.root
-                   (git_root (vim.fn.getcwd)))
+          root (or (. H.notes_roots name)
+                   (if (and short H.base (vim.startswith H.base.sha short))
+                       H.base.root
+                       (git_root (vim.fn.getcwd))))
           sha (and root short (git [:rev-parse :--verify :--quiet (.. short "^{commit}")] root))
           text (and sha (base_text {: root : sha} rel))]
         (if (= text nil)
@@ -318,7 +385,9 @@
                 (tset vim.bo buf_id :swapfile false)
                 (tset vim.bo buf_id :modified false)
                 (tset vim.bo buf_id :filetype (or (vim.filetype.match {:filename rel}) ""))
-                (mark_notes buf_id)))))
+                (mark_notes buf_id)
+                (tset H.notes_roots name root)
+                (save_branch_state root)))))
 
 ;; ----------------------------------------------------------------------------
 ;; Public functions
@@ -338,42 +407,57 @@
                     (set H.saved_source mini_diff.config.source))
                 (set H.base {: root : ref : sha})
                 (set H.worktree_changes {})
+                (set H.ref_texts {})
                 (set vim.g.review_base ref)
                 (set mini_diff.config.source [(review_source) (mini_diff.gen_source.git)])
                 (reattach_buffers)
                 (refresh_worktree_changes)
-                (save_state)
+                (save_branch_state root)
                 (vim.notify (string.format "Reviewing against %s (%s)" ref (sha:sub 1 10)))))))
 
 (fn stop []
     (when H.base
+        (local root H.base.root)
         (set H.base nil)
+        (set H.ref_texts {})
         (set vim.g.review_base nil)
         (set mini_diff.config.source H.saved_source)
         (reattach_buffers)
-        (save_state)
+        (save_branch_state root)
         (vim.notify "Review mode off")))
 
 (fn toggle_overlay []
     "Toggle the mini.diff overlay in all buffers, for the current mode."
     (let [mode (if H.base :review :normal)]
         (tset H.overlay mode (not (. H.overlay mode)))
-        (save_state)
+        (save_settings)
         (each [_ buf_id (ipairs (vim.api.nvim_list_bufs))]
             (sync_overlay buf_id))
         (vim.notify (.. "Diff overlay " (if (. H.overlay mode) "on" "off") (if H.base " in review mode" "")))))
 
-(fn restore_state []
-    (let [(ok state) (pcall vim.json.decode (or vim.g.ReviewState ""))]
-        (when (and ok (= (type state) :table))
-            (when (= (type state.overlay) :table)
-                (each [mode on (pairs state.overlay)]
-                    (tset H.overlay mode on)))
-            (if (= (type state.ref) :string)
-                (start state.ref (if (= (type state.root) :string) state.root nil))
-                (stop))
-            (each [_ buf_id (ipairs (vim.api.nvim_list_bufs))]
-                (sync_overlay buf_id)))))
+(fn restore_branch_state [root]
+    "Reopen the notes buffers and review base saved for `root`'s branch."
+    (let [branch (current_branch root)
+          state (and branch (read_json (branch_file root branch)))]
+        (when state
+            (each [_ name (ipairs (or state.notes []))]
+                (tset H.notes_roots name root)
+                ;; Listed but not loaded until visited.
+                (tset vim.bo (vim.fn.bufadd name) :buflisted true))
+            (when (and (= (type state.ref) :string) (= H.base nil))
+                (start state.ref root)))))
+
+(fn restore_for_buffer [buf_id]
+    "Restore saved state the first time a file in a repo is opened."
+    (let [name (vim.api.nvim_buf_get_name buf_id)
+          found (and (vim.api.nvim_buf_is_valid buf_id)
+                     (= (. vim.bo buf_id :buftype) "")
+                     (not= name "")
+                     (vim.fs.root buf_id ".git"))
+          root (and found (realpath found))]
+        (when (and root (not (. H.restored root)))
+            (tset H.restored root true)
+            (restore_branch_state root))))
 
 (fn ensure_base []
     (when (= H.base nil) (start))
@@ -477,26 +561,43 @@
     :pattern "review://*"
     :callback #(tset H.notes $.buf nil)})
 
-;; Keep each buffer's overlay in line with the setting for the current mode.
+;; Forget closed notes buffers. The buffer is still listed during the event.
+(vim.api.nvim_create_autocmd [:BufDelete :BufWipeout] {
+    :group augroup
+    :pattern "review://*"
+    :callback (fn [args]
+        (let [root (. H.notes_roots (vim.api.nvim_buf_get_name args.buf))]
+            (vim.schedule #(save_branch_state root))))})
+
+;; Not scheduled: restoring before mini.diff's own (scheduled) enable means the
+;; buffer starts on the review source instead of switching to it.
+(vim.api.nvim_create_autocmd :BufEnter {
+    :group augroup
+    :callback #(restore_for_buffer $.buf)})
+
+(vim.api.nvim_create_autocmd :VimLeavePre {
+    :group augroup
+    :callback #(set H.exiting true)})
+
+;; Keep each buffer's base text, and its overlay in line with the setting for
+;; the current mode.
 (vim.api.nvim_create_autocmd :User {
     :group augroup
     :pattern :MiniDiffUpdated
-    :callback (fn [args] (vim.schedule #(sync_overlay args.buf)))})
+    :callback (fn [args] (vim.schedule #(do (keep_review_ref_text args.buf)
+                                            (sync_overlay args.buf))))})
 
-(vim.api.nvim_create_autocmd :SessionLoadPost {
-    :group augroup
-    :callback restore_state})
-
-(vim.api.nvim_create_user_command :ReviewBase
-    (fn [opts] (start (if (= opts.args "") nil opts.args)))
-    {:nargs "?"
-     :desc "Review changes since a git base (default: the default branch)"
-     :complete (fn [lead]
-        (let [root (git_root (current_dir))
-              refs (if root (git_lines [:for-each-ref "--format=%(refname:short)" :refs/heads] root) [])
-              default (and root (default_branch root))]
-            (when default (table.insert refs 1 default))
-            (vim.tbl_filter #(vim.startswith $ lead) refs)))})
+(each [_ command (ipairs [:Review :ReviewBase])]
+    (vim.api.nvim_create_user_command command
+        (fn [opts] (start (if (= opts.args "") nil opts.args)))
+        {:nargs "?"
+         :desc "Review changes since a git base (default: the default branch)"
+         :complete (fn [lead]
+            (let [root (git_root (current_dir))
+                  refs (if root (git_lines [:for-each-ref "--format=%(refname:short)" :refs/heads] root) [])
+                  default (and root (default_branch root))]
+                (when default (table.insert refs 1 default))
+                (vim.tbl_filter #(vim.startswith $ lead) refs)))}))
 
 (vim.api.nvim_create_user_command :ReviewOff #(stop) {:desc "Stop review mode"})
 

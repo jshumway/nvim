@@ -192,6 +192,11 @@
             (gh_async [:pr :ready pr.url] nil (fn [ok out]
                 (if ok
                     (vim.notify (string.format "PR #%d is ready for review" pr.number))
+                    ;; A devbox's GitHub proxy refuses this on purpose: a human
+                    ;; has to do it in GitHub.
+                    (out:find "github%-proxy%-srv")
+                    (do (open_url pr.url)
+                        (vim.notify "PR: devboxes can't mark PRs ready; do it in GitHub" vim.log.levels.WARN))
                     (vim.notify (.. "PR: " out) vim.log.levels.ERROR))))))))
 
 {

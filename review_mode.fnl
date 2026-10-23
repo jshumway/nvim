@@ -656,7 +656,8 @@
             (vim.notify (.. "Review: recorded " (sha:sub 1 10) " as reviewed; :ReviewSince shows what comes after it")))))
 
 (fn toggle_done []
-    "Mark the current file done, or put it back in the rotation."
+    "Mark the current file done and go on to the next one not done, or put
+    the current file back in the rotation."
     (when (ensure_base)
         (let [rel (relpath H.base.root (buf_path 0))
               item (accumulate [found nil _ item (ipairs (. (rotation) :items)) &until found]
@@ -673,8 +674,11 @@
                     (let [left (length (. (rotation) :active))]
                         (vim.notify (string.format "Review: %s %s (%d left)"
                                                    rel (if item.done "is back in the rotation" "done") left))
-                        (when (and (= left 0) (not item.done))
-                            (record_reviewed)))
+                        (if item.done
+                            nil
+                            (= left 0)
+                            (record_reviewed)
+                            (goto_changed_file :next)))
                     (redraw))))))
 
 (fn progress []

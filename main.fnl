@@ -271,7 +271,7 @@
     ;; keep its own.
     (map :n "]h" m.next_hunk {:noremap true :desc "Next hunk"})
     (map :n "[h" m.prev_hunk {:noremap true :desc "Prev hunk"})
-    (map :n :<Leader>dd m.toggle_done {:noremap true :desc "Mark file done"})
+    (map :n :<Leader>dd m.toggle_done {:noremap true :desc "Mark file done, go to next"})
     (map :n :<Leader>ds m.since {:noremap true :desc "Review since last review"})
 
     (table.insert module_clues [
@@ -279,6 +279,7 @@
         {:mode :n :keys :<Leader>dB :postkeys :<Leader>d}
         {:mode :n :keys :<Leader>dn :postkeys :<Leader>d}
         {:mode :n :keys :<Leader>dN :postkeys :<Leader>d}
+        {:mode :n :keys :<Leader>dd :postkeys :<Leader>d}
     ]))
 
 (now-let [m (require :review_overview)]

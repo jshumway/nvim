@@ -5,31 +5,57 @@
 ;; review: what's being reviewed (the pull request, the base and branch) on
 ;; the left; on the right, where the current file is among the files not done
 ;; yet, how many are done, and which hunk of the file the cursor is in. Tabs,
-;; when there's more than one, are listed at the far right.
+;; when there's more than one, are listed before the file and hunk.
 ;;
-;; The highlight groups link to mini.statusline's, unless the colorscheme sets
-;; them: ReviewBarBadge, ReviewBar, ReviewBarItem and ReviewBarDim.
+;; It's laid out like the status line, with mini.statusline, and colored by
+;; whose change it is: blue for your own, green for someone else's pull
+;; request (grey until that's known). The highlight groups are
+;; ReviewBar{Self,Other,Pending}{Block,Text,Dim}: Block for the end sections,
+;; colored like the status line's mode, and Text and Dim for the text between.
 
 (local review (require :review_mode))
+(local mini_statusline (require :mini.statusline))
 
 (local H {
     ;; Tabline options from before review mode, restored after.
     :saved nil
     ;; Branch being reviewed.
     :branch nil
-    ;; Pull request for {root branch}: {:number :title :url}, or false when
-    ;; the branch has none.
+    ;; Pull request for {root branch}: {:number :title :url :author}, false
+    ;; when the branch has none, or :loading.
     :prs {}
+    ;; Your GitHub login, false if it can't be found, or :loading.
+    :login nil
     ;; Hunk text last drawn, to redraw only when it changes.
     :hunk nil
 })
 
+(fn hl_color [name attr]
+    (let [value (. (vim.api.nvim_get_hl 0 {: name :link false}) attr)]
+        (when value (string.format "#%06x" value))))
+
+(fn blend [color base amount]
+    "Mix `amount` of `color` into `base`, both as #rrggbb."
+    (let [channel (fn [hex i] (tonumber (hex:sub (+ 2 (* 2 i)) (+ 3 (* 2 i))) 16))]
+        (.. "#" (table.concat
+                    (fcollect [i 0 2]
+                        (string.format "%02x" (math.floor (+ 0.5 (* amount (channel color i))
+                                                             (* (- 1 amount) (channel base i))))))
+                    ""))))
+
 (fn set_highlights []
-    (each [name link (pairs {:ReviewBarBadge :MiniStatuslineModeOther
-                             :ReviewBar :MiniStatuslineFilename
-                             :ReviewBarItem :MiniStatuslineDevinfo
-                             :ReviewBarDim :MiniStatuslineInactive})]
-        (vim.api.nvim_set_hl 0 name {: link :default true})))
+    (let [(ok palettes) (pcall require :no-clown-fiesta.palettes)
+          palette (when (and ok (= vim.g.colors_name :no-clown-fiesta)) (palettes.get :dark))
+          bg (or (hl_color :Normal :bg) "#151515")]
+        (each [kind color (pairs {:Self (or (?. palette :blue) (hl_color :DiagnosticInfo :fg) "#bad7ff")
+                                  :Other (or (?. palette :green) (hl_color :DiagnosticOk :fg) "#90a959")})]
+            (vim.api.nvim_set_hl 0 (.. :ReviewBar kind :Block) {:fg bg :bg color :default true})
+            (vim.api.nvim_set_hl 0 (.. :ReviewBar kind :Text) {:fg color :bg bg :default true})
+            (vim.api.nvim_set_hl 0 (.. :ReviewBar kind :Dim) {:fg (blend color bg 0.6) :bg bg :default true}))
+        (each [name link (pairs {:ReviewBarPendingBlock :MiniStatuslineModeNormal
+                                 :ReviewBarPendingText :MiniStatuslineFilename
+                                 :ReviewBarPendingDim :MiniStatuslineDevinfo})]
+            (vim.api.nvim_set_hl 0 name {: link :default true}))))
 
 (set_highlights)
 
@@ -40,16 +66,30 @@
 (fn pr_key [root branch] (.. root "\1" (or branch "")))
 
 (fn fetch_pr [root branch]
-    "Look up the pull request for `branch`, in the background."
+    "Look up the pull request for `branch`, and your login, in the background."
     (let [key (pr_key root branch)]
-        (when (and branch (= nil (. H.prs key)))
-            (tset H.prs key false)
-            (vim.system [:gh :pr :view branch :--json "number,title,url"] {:cwd root :text true}
+        (when (= H.login nil)
+            (set H.login :loading)
+            (vim.system [:gh :api :user :--jq :.login] {:cwd root :text true}
                 (vim.schedule_wrap (fn [res]
-                    (let [(ok pr) (if (= res.code 0) (pcall vim.json.decode res.stdout) (values false nil))]
-                        (when (and ok (= (type pr) :table) pr.number)
-                            (tset H.prs key pr)
+                    (set H.login (and (= res.code 0) (not= (vim.trim res.stdout) "") (vim.trim res.stdout)))
+                    (vim.cmd.redrawtabline)))))
+        (when (= nil (. H.prs key))
+            (tset H.prs key (if branch :loading false))
+            (when branch
+                (vim.system [:gh :pr :view branch :--json "number,title,url,author"] {:cwd root :text true}
+                    (vim.schedule_wrap (fn [res]
+                        (let [(ok pr) (if (= res.code 0) (pcall vim.json.decode res.stdout) (values false nil))]
+                            (tset H.prs key (and ok (= (type pr) :table) pr.number pr))
                             (vim.cmd.redrawtabline)))))))))
+
+(fn kind [pr]
+    "Whose change this is: :Self, :Other, or :Pending while that isn't known."
+    (if (or (= pr :loading) (and pr (= H.login :loading)))
+        :Pending
+        (and pr H.login (?. pr :author :login) (not= pr.author.login H.login))
+        :Other
+        :Self))
 
 (fn escape [text] (pick-values 1 (text:gsub "%%" "%%%%")))
 
@@ -71,14 +111,14 @@
                 p.done (string.format "file ✓, %d left" p.n)
                 (string.format "file -/%d" p.n)))))
 
-(fn tabs []
+(fn tabs [hl]
     (let [count (vim.fn.tabpagenr :$)
           current (vim.fn.tabpagenr)]
         (if (<= count 1)
             ""
             (table.concat
                 (fcollect [i 1 count]
-                    (.. "%" i "T" (if (= i current) "%#ReviewBarBadge#" "%#ReviewBarDim#") " " i " "))
+                    (.. "%" i "T%#" (if (= i current) (.. hl :Text) (.. hl :Dim)) "# " i " "))
                 ""))))
 
 (fn render []
@@ -87,29 +127,29 @@
             ""
             (let [since (and (base.ref:match "^%x+$") (vim.startswith base.sha base.ref))
                   pr (. H.prs (pr_key base.root H.branch))
+                  hl (.. :ReviewBar (kind pr))
                   progress (review.progress)
                   hunk (hunk_text)
                   file (file_text)
-                  right []]
+                  info []]
                 (set H.hunk hunk)
-                (when vim.b.review_file (table.insert right "base version"))
-                (when file (table.insert right file))
+                (when ((. (require :review_overview) :writing)) (table.insert info "writing overview…"))
+                (when vim.b.review_file (table.insert info "base version"))
                 (when (and progress (> progress.done_count 0) (> progress.n 0))
-                    (table.insert right (string.format "%d/%d done" progress.done_count progress.total)))
-                (when hunk (table.insert right hunk))
-                (when ((. (require :review_overview) :writing)) (table.insert right "writing overview…"))
-                (.. "%#ReviewBarBadge# REVIEW "
-                    "%#ReviewBarItem# "
-                    (escape (if since (.. "since " (base.ref:sub 1 10)) base.ref))
-                    (if H.branch (.. " → " (escape H.branch)) "")
-                    " %#ReviewBar# "
-                    (if pr (escape (.. "#" pr.number " " (shorten (or pr.title "") 80))) "")
-                    "%<%="
-                    (if (> (length right) 0)
-                        (.. "%#ReviewBar# " (escape (table.concat right "  ·  ")) " ")
-                        "")
-                    (tabs)
-                    "%T%#ReviewBar#")))))
+                    (table.insert info (string.format "%d/%d done" progress.done_count progress.total)))
+                (mini_statusline.combine_groups [
+                        {:hl (.. hl :Block) :strings ["REVIEW"]}
+                        {:hl (.. hl :Dim) :strings [(escape (.. (if since (.. "since " (base.ref:sub 1 10)) base.ref)
+                                                                (if H.branch (.. " → " H.branch) "")))]}
+                        "%<"
+                        {:hl (.. hl :Text) :strings [(if (= (type pr) :table)
+                                                         (escape (.. "#" pr.number " " (shorten (or pr.title "") 80)))
+                                                         "")]}
+                        "%="
+                        {:hl (.. hl :Dim) :strings [(escape (table.concat info " · "))]}
+                        (tabs hl)
+                        "%T"
+                        {:hl (.. hl :Block) :strings [(escape (table.concat (icollect [_ text (pairs [file hunk])] text) " · "))]}])))))
 
 (fn update []
     (let [base (review.base)]

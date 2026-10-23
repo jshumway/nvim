@@ -258,7 +258,7 @@
 
 (now-let [m (require :review_mode)]
     (map :n :<Leader>dS m.toggle_overlay {:noremap true :silent true :desc "Toggle diff overlay"})
-    (map :n :<Leader>db m.start {:noremap true :desc "Review vs default branch"})
+    (map :n :<Leader>db m.start {:noremap true :desc "Review vs PR base"})
     (map :n :<Leader>dB m.pick_base {:noremap true :desc "Review vs branch"})
     (map :n :<Leader>dx m.stop {:noremap true :desc "Stop review"})
     (map :n :<Leader>df m.pick_changed_files {:noremap true :desc "Changed files"})
@@ -280,6 +280,7 @@
         {:mode :n :keys :<Leader>dn :postkeys :<Leader>d}
         {:mode :n :keys :<Leader>dN :postkeys :<Leader>d}
         {:mode :n :keys :<Leader>dd :postkeys :<Leader>d}
+        {:mode :n :keys :<Leader>dS :postkeys :<Leader>d}
     ]))
 
 (now-let [m (require :review_overview)]

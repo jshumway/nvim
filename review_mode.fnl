@@ -3,8 +3,11 @@
 ;;
 ;; Diff buffers against a fixed git base instead of the index, so mini.diff
 ;; marks everything the branch changed. By default the base is where the
-;; branch forked from the default branch, which matches what a PR shows.
-;; Start from the shell with `nvim +Review` or `nvim "+Review main"`.
+;; branch forked from the branch its PR merges into, which matches what the PR
+;; shows: the default branch, or for a stacked PR (`pay stack`) the branch it's
+;; stacked on. A stacked branch without a PR yet uses the parent `pay stk`
+;; tracks for it. Start from the shell with `nvim +Review` or
+;; `nvim "+Review main"`.
 ;;
 ;; While review mode is on:
 ;; - every buffer in the repo uses the base as its mini.diff reference text
@@ -158,6 +161,60 @@
                      (git [:branch :--show-current] root))]
         (when (not= branch "") branch)))
 
+(fn short_name [ref]
+    (pick-values 1 (ref:gsub "^origin/" "")))
+
+(fn run [cmd root]
+    "Run `cmd` in `root`, giving up after a few seconds; its output on success."
+    (let [(ok res) (pcall #(: (vim.system cmd {:cwd root :text true :timeout 5000}) :wait))]
+        (when (and ok (= res.code 0)) res.stdout)))
+
+(fn pay_stack_parent [root branch]
+    "The branch `pay stk` has `branch` stacked on, from its stack diagram: the
+    nearest branch below it that's indented less."
+    (let [out (and (= 1 (vim.fn.executable :pay)) (run [:pay :stk :show :--agent :-n branch] root))
+          rows (icollect [line (string.gmatch (or out "") "[^\n]+")]
+                   (let [(at name) (line:match "()╭── ([^%s]+)")
+                         (at name) (if (= name "→") (line:match "()╭── → ([^%s]+)") (values at name))
+                         (root_at root_name) (line:match "()⁜ ([^%s]+)")]
+                       (if name {: at : name}
+                           root_name {:at root_at :name root_name})))
+          current (accumulate [found nil i row (ipairs rows) &until found]
+                      (when (= row.name branch) i))]
+        (when current
+            (accumulate [found nil i row (ipairs rows) &until found]
+                (when (and (> i current) (< row.at (. rows current :at))) row.name)))))
+
+(fn stack_parent [root]
+    "The branch the checked out one is stacked on: its PR's base, or the parent
+    `pay stk` tracks when it has no PR. Nil when that's the default branch or
+    there's none."
+    (let [branch (current_branch root)
+          pr (and branch (run [:gh :pr :view branch :--json :baseRefName] root))
+          (ok data) (if pr (pcall vim.json.decode pr) (values false nil))
+          parent (if (and ok (= (type data) :table) (= (type data.baseRefName) :string))
+                     data.baseRefName
+                     (and branch (pay_stack_parent root branch)))
+          default (default_branch root)]
+        (when (and parent (not= parent "") (not= parent branch)
+                   (not= parent (and default (short_name default))))
+            parent)))
+
+(fn branch_rev [root name]
+    "A revision for branch `name`: the newer of its local and remote-tracking
+    branches (the one HEAD forked from later), fetched if there's neither."
+    (let [refs (icollect [_ ref (ipairs [(.. "origin/" name) name])]
+                   (when (git [:rev-parse :--verify :--quiet (.. ref "^{commit}")] root) ref))
+          [a b] refs]
+        (if (= a nil)
+            (when (git [:fetch :--quiet :origin name] root)
+                (git [:rev-parse :FETCH_HEAD] root))
+            (= b nil)
+            a
+            (let [base_a (git [:merge-base :HEAD a] root)
+                  base_b (git [:merge-base :HEAD b] root)]
+                (if (and base_a base_b (git [:merge-base :--is-ancestor base_a base_b] root)) b a)))))
+
 (fn branch_file [root branch]
     (.. STATE_DIR "/" (: (vim.fn.sha256 (.. root ":" branch)) :sub 1 16) ".json"))
 
@@ -176,6 +233,7 @@
                     {: root
                      : branch
                      :ref (when ours H.base.ref)
+                     :auto (when ours H.base.auto)
                      :done (if ours H.done old.done)
                      :last_reviewed (if ours H.last_reviewed old.last_reviewed)
                      :notes (icollect [_ buf_id (ipairs (vim.api.nvim_list_bufs))]
@@ -504,11 +562,24 @@
 ;; Public functions
 
 (fn start [ref root]
-    "Review against the merge base of HEAD and `ref` (default: the default branch)."
+    "Review against the merge base of HEAD and `ref`; by default, the branch
+    this one's PR merges into (see the top of this file)."
     (let [root (or root (git_root (current_dir)))
-          ref (or ref (and root (default_branch root)))
-          sha (and root ref (or (git [:merge-base :HEAD ref] root)
-                                (git [:rev-parse :--verify :--quiet (.. ref "^{commit}")] root)))]
+          auto (= ref nil)
+          parent (and root auto (stack_parent root))
+          parent_rev (and parent (branch_rev root parent))
+          _ (when (and parent (= parent_rev nil))
+                (vim.notify (.. "Review: can't find " parent ", the branch this one is stacked on; "
+                                "reviewing against the default branch")
+                            vim.log.levels.WARN))
+          ref (or ref (and parent_rev parent) (and root (default_branch root)))
+          rev (if parent_rev
+                  parent_rev
+                  (or (= root nil) (= ref nil) (git [:rev-parse :--verify :--quiet (.. ref "^{commit}")] root))
+                  ref
+                  (branch_rev root ref))
+          sha (and root rev (or (git [:merge-base :HEAD rev] root)
+                                (git [:rev-parse :--verify :--quiet (.. rev "^{commit}")] root)))]
         (if (= root nil)
             (vim.notify "Review: not in a git repository" vim.log.levels.WARN)
             (= sha nil)
@@ -516,7 +587,7 @@
             (do
                 (when (= H.base nil)
                     (set H.saved_source mini_diff.config.source))
-                (set H.base {: root : ref : sha})
+                (set H.base {: root : ref : sha : auto :stacked (not= parent_rev nil)})
                 (set H.worktree_changes {})
                 (set H.ref_texts {})
                 (set H.order nil)
@@ -527,7 +598,8 @@
                 (reattach_buffers)
                 (refresh_worktree_changes)
                 (save_branch_state root)
-                (vim.notify (string.format "Reviewing against %s (%s)" ref (sha:sub 1 10)))
+                (vim.notify (string.format "Reviewing against %s (%s)%s" ref (sha:sub 1 10)
+                                           (if parent_rev ", the branch this one is stacked on" "")))
                 (vim.api.nvim_exec_autocmds :User {:pattern :ReviewStart :modeline false})))))
 
 (fn stop []
@@ -563,7 +635,10 @@
                 ;; Listed but not loaded until visited.
                 (tset vim.bo (vim.fn.bufadd name) :buflisted true))
             (when (and (= (type state.ref) :string) (= H.base nil))
-                (start state.ref root)))))
+                ;; Find the base again, in case the branch was restacked or
+                ;; its parent merged. Older state didn't say, but its base
+                ;; was the default branch.
+                (start (when (not (or state.auto (= state.ref (default_branch root)))) state.ref) root)))))
 
 (fn restore_for_buffer [buf_id]
     "Restore saved state the first time a file in a repo is opened."
@@ -587,9 +662,10 @@
             (vim.notify "Review: not in a git repository" vim.log.levels.WARN)
             (let [default (default_branch root)
                   current (git [:branch :--show-current] root)
-                  items [default]]
+                  parent (stack_parent root)
+                  items (if parent [parent default] [default])]
                 (each [_ branch (ipairs (git_lines [:for-each-ref :--sort=-committerdate "--format=%(refname:short)" :refs/heads] root))]
-                    (when (and (not= branch current) (not= branch default))
+                    (when (and (not= branch current) (not= branch default) (not= branch parent))
                         (table.insert items branch)))
                 (mini_pick.start {:source {
                     :name "Review base"
@@ -597,7 +673,7 @@
                     ;; Show the commits that would be under review.
                     :preview (fn [buf_id ref]
                         (vim.api.nvim_buf_set_lines buf_id 0 -1 false
-                            (git_lines [:log :--oneline :-n :200 (.. ref "..HEAD")] root)))
+                            (git_lines [:log :--oneline :-n :200 (.. (or (branch_rev root ref) ref) "..HEAD")] root)))
                     :choose (fn [ref] (when ref (vim.schedule #(start ref))) nil)}})))))
 
 (fn pick_changed_files []
@@ -887,6 +963,7 @@
     :since review_since
     : record_reviewed
     : set_order
+    : branch_rev
     ;; For review_overview.fnl and review_comments.fnl.
     :base #H.base
     :items #(when (ensure_base) (. (rotation) :items))

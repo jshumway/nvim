@@ -466,8 +466,10 @@
                                        (head:sub 1 10) (pr.headRefOid:sub 1 10))
                         vim.log.levels.WARN)
             (let [(host owner name) (pr.url:match "^https?://([^/]+)/([^/]+)/([^/]+)/pull/%d+")
-                  pr_base (or (git [:merge-base :HEAD (.. "origin/" pr.baseRefName)] root)
-                              (git [:merge-base :HEAD pr.baseRefName] root))
+                  ;; The same base review mode finds, so base version notes
+                  ;; are found too.
+                  base_rev (review.branch_rev root pr.baseRefName)
+                  pr_base (and base_rev (git [:merge-base :HEAD base_rev] root))
                   all (collect_items root pr_base)
                   sent (read_sent pr.url)
                   items (icollect [_ item (ipairs all)] (when (not (. sent item.key)) item))

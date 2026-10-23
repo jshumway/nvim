@@ -3,11 +3,10 @@
 ;;
 ;; Diff buffers against a fixed git base instead of the index, so mini.diff
 ;; marks everything the branch changed. By default the base is where the
-;; branch forked from the branch its PR merges into, which matches what the PR
-;; shows: the default branch, or for a stacked PR (`pay stack`) the branch it's
-;; stacked on. A stacked branch without a PR yet uses the parent `pay stk`
-;; tracks for it. Start from the shell with `nvim +Review` or
-;; `nvim "+Review main"`.
+;; branch forked from its parent, which matches what its PR shows: the branch
+;; `pay stk` has it stacked on, or for a branch pay stk doesn't track (someone
+;; else's PR) the branch its PR merges into, else the default branch. Start
+;; from the shell with `nvim +Review` or `nvim "+Review main"`.
 ;;
 ;; While review mode is on:
 ;; - every buffer in the repo uses the base as its mini.diff reference text
@@ -171,30 +170,33 @@
 
 (fn pay_stack_parent [root branch]
     "The branch `pay stk` has `branch` stacked on, from its stack diagram: the
-    nearest branch below it that's indented less."
+    nearest branch below it that's indented less, else the stack's root."
     (let [out (and (= 1 (vim.fn.executable :pay)) (run [:pay :stk :show :--agent :-n branch] root))
           rows (icollect [line (string.gmatch (or out "") "[^\n]+")]
                    (let [(at name) (line:match "()╭── ([^%s]+)")
                          (at name) (if (= name "→") (line:match "()╭── → ([^%s]+)") (values at name))
-                         (root_at root_name) (line:match "()⁜ ([^%s]+)")]
+                         root_name (line:match "⁜ ([^%s]+)")]
                        (if name {: at : name}
-                           root_name {:at root_at :name root_name})))
+                           root_name {:at 0 :name root_name})))
           current (accumulate [found nil i row (ipairs rows) &until found]
                       (when (= row.name branch) i))]
         (when current
             (accumulate [found nil i row (ipairs rows) &until found]
                 (when (and (> i current) (< row.at (. rows current :at))) row.name)))))
 
+(fn pr_base [root branch]
+    "The branch `branch`'s PR merges into, from GitHub."
+    (let [out (run [:gh :pr :view branch :--json :baseRefName] root)
+          (ok data) (if out (pcall vim.json.decode out) (values false nil))]
+        (when (and ok (= (type data) :table) (= (type data.baseRefName) :string))
+            data.baseRefName)))
+
 (fn stack_parent [root]
-    "The branch the checked out one is stacked on: its PR's base, or the parent
-    `pay stk` tracks when it has no PR. Nil when that's the default branch or
-    there's none."
+    "The branch the checked out one is stacked on: the parent `pay stk` tracks,
+    or its PR's base when pay stk doesn't track it. Nil when that's the default
+    branch or there's none."
     (let [branch (current_branch root)
-          pr (and branch (run [:gh :pr :view branch :--json :baseRefName] root))
-          (ok data) (if pr (pcall vim.json.decode pr) (values false nil))
-          parent (if (and ok (= (type data) :table) (= (type data.baseRefName) :string))
-                     data.baseRefName
-                     (and branch (pay_stack_parent root branch)))
+          parent (and branch (or (pay_stack_parent root branch) (pr_base root branch)))
           default (default_branch root)]
         (when (and parent (not= parent "") (not= parent branch)
                    (not= parent (and default (short_name default))))
@@ -562,8 +564,8 @@
 ;; Public functions
 
 (fn start [ref root]
-    "Review against the merge base of HEAD and `ref`; by default, the branch
-    this one's PR merges into (see the top of this file)."
+    "Review against the merge base of HEAD and `ref`; by default, this
+    branch's parent (see the top of this file)."
     (let [root (or root (git_root (current_dir)))
           auto (= ref nil)
           parent (and root auto (stack_parent root))

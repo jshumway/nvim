@@ -2,13 +2,14 @@
 ;; Review overview
 ;;
 ;; A short overview of the change under review: what it does and why, then
-;; the changed files, most important first, each with a line on what it does
-;; and why it's part of the change. Test files sit under the file they test.
-;; Files that rarely matter (package files, generated code, lockfiles) are
-;; listed at the bottom without a description.
+;; the changed files, most important first. Each one is a heading, followed by
+;; a line on what it does and why it's part of the change, and a list of the
+;; test files that check it. Files that rarely matter (package files,
+;; generated code, lockfiles) are listed at the bottom without a description.
 ;;
-;; The overview also sets the review order: next/prev file and the hunk jumps
-;; that cross files follow it.
+;; The overview also sets the review order: the production files in the
+;; overview's order, then their tests, then the rest. Next/prev file and the
+;; hunk jumps that cross files follow it.
 ;;
 ;; Overviews live in the git dir, one per head commit:
 ;; `$(git rev-parse --git-path review-overview)/<head>.json`. A fleet worker
@@ -80,10 +81,16 @@
                                {:luanil {:object true :array true}})]
             (when (and ok (= (type data) :table) (= (type data.files) :table)) data))))
 
+(fn test_file? [rel]
+    (let [name (vim.fs.basename rel)]
+        (or (not= nil (name:find "_test%.%w+$")) (not= nil (name:find "_spec%.%w+$"))
+            (not= nil (name:find "^test_")) (not= nil (name:find "%.test%.")) (not= nil (name:find "%.spec%."))
+            (not= nil (: (.. "/" rel) :find "/tests?/")) (not= nil (: (.. "/" rel) :find "/spec/")))))
+
 (fn plan [data rels]
-    "Order the changed files `rels`: the described ones in the overview's
-    order with their tests after them, then any it left out, then the
-    low-signal ones."
+    "Order the changed files `rels` for review: the described production files
+    in the overview's order, then their tests in the same order, then the
+    files it left out (production files first), then the low-signal ones."
     (let [changed {}
           seen {}
           entries []
@@ -103,10 +110,13 @@
         (each [_ rel (ipairs rels)]
             (when (not (. seen rel))
                 (table.insert (if (low_signal? rel) low missing) rel)))
-        (table.sort missing)
+        (table.sort missing (fn [a b]
+            (let [ta (test_file? a) tb (test_file? b)]
+                (if (= ta tb) (< a b) tb))))
         (table.sort low)
         (each [_ entry (ipairs entries)]
-            (table.insert order entry.path)
+            (table.insert order entry.path))
+        (each [_ entry (ipairs entries)]
             (each [_ test (ipairs entry.tests)] (table.insert order test.path)))
         (vim.list_extend order missing)
         (vim.list_extend order low)
@@ -121,15 +131,14 @@
         (when data.url (table.insert lines data.url))
         (table.insert lines "")
         (vim.list_extend lines (text_lines data.summary ""))
-        (table.insert lines "")
-        (table.insert lines "## Files")
-        (each [i entry (ipairs p.entries)]
-            (table.insert lines "")
-            (table.insert lines (.. i ". " entry.path))
-            (vim.list_extend lines (text_lines entry.why "   "))
-            (each [_ test (ipairs entry.tests)]
-                (table.insert lines (.. "   - " test.path))
-                (vim.list_extend lines (text_lines test.why "     "))))
+        (each [_ entry (ipairs p.entries)]
+            (vim.list_extend lines ["" (.. "## " entry.path) ""])
+            (vim.list_extend lines (text_lines entry.why ""))
+            (when (> (length entry.tests) 0)
+                (table.insert lines "")
+                (each [_ test (ipairs entry.tests)]
+                    (table.insert lines (.. "- " test.path))
+                    (vim.list_extend lines (text_lines test.why "  ")))))
         (when (> (length p.missing) 0)
             (vim.list_extend lines ["" "## Not described" ""])
             (each [_ rel (ipairs p.missing)] (table.insert lines (.. "- " rel))))

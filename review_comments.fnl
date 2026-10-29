@@ -505,16 +505,21 @@
 ;; ----------------------------------------------------------------------------
 ;; For agents
 
-(fn export [path]
-    "Write the comments in the working tree to `path` as markdown, for an agent
-    to work through. Returns how many there are."
+(fn export [path base_sha]
+    "Write working-tree comments to `path` as markdown. With `base_sha`, also
+    include base-side comments. Return the number of exported comments."
     (let [root (git [:rev-parse :--show-toplevel] (vim.fn.getcwd))
           items (if root (worktree_items root) [])]
+        ;; Deck supplies the displayed base. Only comment lines from base notes
+        ;; are exported; other note edits remain private. Legacy calls omit it.
+        (when (and root base_sha) (vim.list_extend items (notes_items root base_sha)))
         (when (> (length items) 0)
             (let [lines ["# Review comments" ""
-                         "Comments and suggested changes Jared wrote in the files while reviewing. Lines are numbered as in HEAD, before his edits."]]
+                         (if base_sha "Comments and suggestions from the review. Lines refer to HEAD unless a heading names the base commit."
+                             "Comments and suggested changes Jared wrote in the files while reviewing. Lines are numbered as in HEAD, before his edits.")]]
                 (each [_ item (ipairs items)]
-                    (vim.list_extend lines ["" (.. "## " (location item))])
+                    (vim.list_extend lines ["" (.. "## " (location item)
+                                                   (if (= item.side :LEFT) (.. " (base " base_sha ")") ""))])
                     (when (not= item.text "") (vim.list_extend lines (vim.split item.text "\n" {:plain true})))
                     (when (= item.kind :suggestion)
                         (vim.list_extend lines
@@ -534,6 +539,7 @@
 {
     : send
     : export
+    :export_version 2
     ;; For tests.
     : hunk_item
     : comment_syntax

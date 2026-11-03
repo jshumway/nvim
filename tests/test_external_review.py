@@ -54,3 +54,39 @@ assert(vim.api.nvim_get_current_line()=='unsaved notes')
         self.assertEqual(0,result.returncode,result.stderr)
         self.assertNotIn('Error',result.stderr)
         self.assertNotIn('assertion failed',result.stderr)
+
+    def test_terminal_review_uses_stack_root_before_pr_metadata(self):
+        root = Path(self.enterContext(tempfile.TemporaryDirectory())).resolve()
+        def git(*args):
+            return subprocess.check_output(['git','-c','core.fsmonitor=false','-c','core.hooksPath=/dev/null',
+                '-c','user.name=Test','-c','user.email=test@example.invalid','-C',str(root),*args],text=True).strip()
+        git('init','-q','-b','main');git('commit','--allow-empty','-qm','base')
+        base=git('rev-parse','HEAD');git('branch','parent');git('checkout','-qb','feature')
+        git('commit','--allow-empty','-qm','feature')
+        script=root/'check.lua'
+        script.write_text(f'''
+package.loaded['mini.diff']={{config={{source={{}}}},gen_source={{git=function() return {{}} end}},
+  get_buf_data=function() end,enable=function() end,disable=function() end}}
+package.loaded['mini.pick']={{}}
+local fennel=dofile({json.dumps(str(ROOT/'fennel/fennel.lua'))})
+local review=fennel.dofile({json.dumps(str(ROOT/'review_mode.fnl'))})
+local system=vim.system
+vim.fn.executable=function() return 1 end
+vim.system=function(argv,...)
+ if argv[1]=='pay' then return {{wait=function() return {{code=0,stdout='╭── → feature\\n    ⁜ parent\\n',stderr=''}} end}} end
+ assert(argv[1]~='gh','A tracked stack must use its parent before PR metadata')
+ return system(argv,...)
+end
+vim.cmd('Review')
+assert(review.base().sha=={json.dumps(base)})
+assert(review.base().ref=='parent')
+''')
+        env={k:v for k,v in os.environ.items() if not k.startswith('DECK_')}
+        for kind in ['DATA','CONFIG','CACHE','STATE']:
+            env['XDG_'+kind+'_HOME']=str(root/kind.lower())
+        result=subprocess.run(['nvim','--headless','-u','NONE','-i','NONE','-c',
+            'lua dofile('+json.dumps(str(script))+')','-c','qa!'],cwd=root,env=env,
+            capture_output=True,text=True,timeout=15)
+        self.assertEqual(0,result.returncode,result.stderr)
+        self.assertNotIn('Error',result.stderr)
+        self.assertNotIn('assertion failed',result.stderr)

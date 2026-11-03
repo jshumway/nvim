@@ -69,6 +69,8 @@
     ;; HEAD when this branch was last reviewed, for `:ReviewSince`.
     :last_reviewed nil
     ;; Changed files in review order, with done marks. Rebuilt when cleared.
+    :external (= vim.env.DECK_ASYNC_REVIEW "1")
+    :external_items []
     :rotation nil
     :rotation_pending false
     ;; Called when the list of changed files may have changed.
@@ -328,6 +330,7 @@
         changes))
 
 (fn refresh_worktree_changes [on_done]
+    (when (not H.external)
     (let [base H.base]
         (vim.system [:git :status :--porcelain=v1 :-z :--untracked-files=all] {:cwd base.root :text true}
             (vim.schedule_wrap (fn [res]
@@ -347,11 +350,12 @@
                                     (tset changes (field:sub 4) (if (status:find "[RC]") "A" status)))))
                         (set H.worktree_changes changes)
                         (H.on_changes)
-                        (when on_done (on_done)))))))))
+                        (when on_done (on_done))))))))))
 
 (fn changed_files []
     "Picker items for files changed since the base. The two status columns are
     committed changes and uncommitted changes."
+    (if H.external H.external_items
     (let [base H.base
           committed (committed_changes base)
           worktree H.worktree_changes
@@ -360,7 +364,7 @@
         (icollect [_ rel (ipairs paths)]
             {:text (.. (or (. committed rel) " ") (or (. worktree rel) " ") " " rel)
              :path (.. base.root "/" rel)
-             : rel})))
+             : rel}))))
 
 (fn content_hash [path]
     (vim.fn.sha256 (disk_text path)))
@@ -380,6 +384,7 @@
 (fn rotation []
     "Changed files in review order as `items`, and the ones not done as
     `active`. A done file that changed since it was marked goes back in."
+    (if H.external {:items H.external_items :active (icollect [_ item (ipairs H.external_items)] (when (not item.done) item))}
     (or H.rotation
         (let [items (ordered_files)
               active []
@@ -399,7 +404,7 @@
                 (vim.notify (string.format "Review: %d done file(s) changed, back in the rotation: %s"
                                            (length changed) (table.concat changed ", "))))
             (set H.rotation {: items : active})
-            H.rotation)))
+            H.rotation))))
 
 (fn redraw []
     "Redraw the status line and the review bar."
@@ -409,7 +414,7 @@
 (fn refresh_rotation []
     "Rebuild the rotation soon, outside of whatever is running now."
     (set H.rotation nil)
-    (when (not H.rotation_pending)
+    (when (and (not H.external) (not H.rotation_pending))
         (set H.rotation_pending true)
         (vim.schedule #(do (set H.rotation_pending false)
                            (when (and H.base (= H.rotation nil))
@@ -602,6 +607,20 @@
                                            (if parent_rev ", the branch this one is stacked on" "")))
                 (vim.api.nvim_exec_autocmds :User {:pattern :ReviewStart :modeline false})))))
 
+(fn set_external [base items]
+    "Install Deck's asynchronously prepared comparison without Git or file hashing."
+    (assert (and base base.root base.sha (= (type items) :table)) "Invalid external review comparison")
+    (when (= H.base nil) (set H.saved_source mini_diff.config.source))
+    (set H.external true)
+    (set H.external_items items)
+    (set H.base {:root base.root :sha base.sha :ref base.sha :auto false})
+    (set H.ref_texts {})
+    (set H.rotation nil)
+    (set vim.g.review_base base.sha)
+    (set mini_diff.config.source [(review_source) (mini_diff.gen_source.git)])
+    (reattach_buffers)
+    true)
+
 (fn stop []
     (when H.base
         (local root H.base.root)
@@ -634,7 +653,7 @@
                 (tset H.notes_roots name root)
                 ;; Listed but not loaded until visited.
                 (tset vim.bo (vim.fn.bufadd name) :buflisted true))
-            (when (and (= (type state.ref) :string) (= H.base nil))
+            (when (and (not H.external) (= (type state.ref) :string) (= H.base nil))
                 ;; Find the base again, in case the branch was restacked or
                 ;; its parent merged. Older state didn't say, but its base
                 ;; was the default branch.
@@ -945,6 +964,8 @@
     {:desc "Mark the current file done, or put it back in the rotation"})
 
 {
+    :external_version 1
+    : set_external
     :start #(start)
     : stop
     : pick_base

@@ -110,6 +110,8 @@
             :hack {:pattern :HACK :group :MiniHipatternsHack }
             :todo {:pattern :TODO :group :MiniHipatternsTodo }
             :note {:pattern :NOTE :group :MiniHipatternsNote }
+            :goal {:pattern :GOAL :group :MiniHipatternsNote }
+            :review {:pattern :REVIEW :group :MiniHipatternsTodo }
             :hex_color (m.gen_highlighter.hex_color)
             :hsl_color_lua (gen_highlighter_hsl_color {:lang :fnl})
             :hsl_color_fnl (gen_highlighter_hsl_color {:lang :lua})
